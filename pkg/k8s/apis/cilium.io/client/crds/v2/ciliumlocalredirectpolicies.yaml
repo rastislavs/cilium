@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: (devel)
   name: ciliumlocalredirectpolicies.cilium.io
 spec:
   group: cilium.io
@@ -74,11 +72,6 @@ spec:
                               description: operator represents a key's relationship
                                 to a set of values. Valid operators are In, NotIn,
                                 Exists and DoesNotExist.
-                              enum:
-                              - In
-                              - NotIn
-                              - Exists
-                              - DoesNotExist
                               type: string
                             values:
                               description: values is an array of string values. If
@@ -96,10 +89,6 @@ spec:
                         type: array
                       matchLabels:
                         additionalProperties:
-                          description: MatchLabelsValue represents the value from
-                            the MatchLabels {key,value} pair.
-                          maxLength: 63
-                          pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                           type: string
                         description: matchLabels is a map of {key,value} pairs. A
                           single {key,value} in the matchLabels map is equivalent
@@ -147,15 +136,6 @@ spec:
               redirectFrontend:
                 description: RedirectFrontend specifies frontend configuration to
                   redirect traffic from. It can not be empty.
-                oneOf:
-                - properties:
-                    addressMatcher: {}
-                  required:
-                  - addressMatcher
-                - properties:
-                    serviceMatcher: {}
-                  required:
-                  - serviceMatcher
                 properties:
                   addressMatcher:
                     description: AddressMatcher is a tuple {IP, port, protocol} that
@@ -279,9 +259,3 @@ spec:
     served: true
     storage: true
     subresources: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: (devel)
   name: ciliumnetworkpolicies.cilium.io
 spec:
   group: cilium.io
@@ -46,15 +44,6 @@ spec:
             type: object
           spec:
             description: Spec is the desired Cilium specific rule specification.
-            oneOf:
-            - properties:
-                endpointSelector: {}
-              required:
-              - endpointSelector
-            - properties:
-                nodeSelector: {}
-              required:
-              - nodeSelector
             properties:
               description:
                 description: Description is a free form string, it can be used by
@@ -67,16 +56,16 @@ spec:
                 items:
                   description: "EgressRule contains all rule types which can be applied
                     at egress, i.e. network traffic that originates inside the endpoint
-                    and exits the endpoint selected by the endpointSelector. \n   -
+                    and exits the endpoint selected by the endpointSelector. \n -
                     All members of this structure are optional. If omitted or empty,
-                    the     member will have no effect on the rule. \n   - If multiple
-                    members of the structure are specified, then all members     must
-                    match in order for the rule to take effect. The exception to this
-                    \    rule is the ToRequires member; the effects of any Requires
-                    field in any     rule will apply to all other rules as well. \n
-                    \  - ToEndpoints, ToCIDR, ToCIDRSet, ToEntities, ToServices and
-                    ToGroups are     mutually exclusive. Only one of these members
-                    may be present within an     individual rule."
+                    the member will have no effect on the rule. \n - If multiple members
+                    of the structure are specified, then all members must match in
+                    order for the rule to take effect. The exception to this rule
+                    is the ToRequires member; the effects of any Requires field in
+                    any rule will apply to all other rules as well. \n - ToEndpoints,
+                    ToCIDR, ToCIDRSet, ToEntities, ToServices and ToGroups are mutually
+                    exclusive. Only one of these members may be present within an
+                    individual rule."
                   properties:
                     auth:
                       description: Auth is the required authentication type for the
@@ -85,10 +74,6 @@ spec:
                         type:
                           description: Type is the required authentication type for
                             the allowed traffic, if any.
-                          enum:
-                          - "null"
-                          - mtls-spiffe
-                          - always-fail
                           type: string
                       required:
                       - type
@@ -107,19 +92,13 @@ spec:
                               description: ICMPField is a ICMP field.
                               properties:
                                 family:
-                                  default: IPv4
                                   description: Family is a IP address version. Currently,
                                     we support `IPv4` and `IPv6`. `IPv4` is set as
                                     default.
-                                  enum:
-                                  - IPv4
-                                  - IPv6
                                   type: string
                                 type:
                                   description: Type is a ICMP-type. It should be 0-255
                                     (8bit).
-                                  maximum: 255
-                                  minimum: 0
                                   type: integer
                               required:
                               - type
@@ -140,7 +119,6 @@ spec:
                       items:
                         description: 'CIDR specifies a block of IP addresses. Example:
                           192.0.2.1/32'
-                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                         type: string
                       type: array
                     toCIDRSet:
@@ -160,27 +138,15 @@ spec:
                           to/from which outside communication  is allowed, along with
                           an optional list of subnets within that CIDR prefix to/from
                           which outside communication is not allowed.
-                        oneOf:
-                        - properties:
-                            cidr: {}
-                          required:
-                          - cidr
-                        - properties:
-                            cidrGroupRef: {}
-                          required:
-                          - cidrGroupRef
                         properties:
                           cidr:
                             description: CIDR is a CIDR prefix / IP Block.
-                            pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                             type: string
                           cidrGroupRef:
                             description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                               object. A CiliumCIDRGroup contains a list of CIDRs that
                               the endpoint, subject to the rule, can (Ingress) or
                               cannot (IngressDeny) receive connections from.
-                            maxLength: 253
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                           except:
                             description: ExceptCIDRs is a list of IP blocks which
@@ -193,9 +159,10 @@ spec:
                             items:
                               description: 'CIDR specifies a block of IP addresses.
                                 Example: 192.0.2.1/32'
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             type: array
+                        required:
+                        - cidr
                         type: object
                       type: array
                     toEndpoints:
@@ -223,11 +190,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -246,10 +208,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -268,18 +226,6 @@ spec:
                         description: Entity specifies the class of receiver/sender
                           endpoints that do not have individual identities.  Entities
                           are used to describe "outside of cluster", "host", etc.
-                        enum:
-                        - all
-                        - world
-                        - cluster
-                        - host
-                        - init
-                        - ingress
-                        - unmanaged
-                        - remote-node
-                        - health
-                        - none
-                        - kube-apiserver
                         type: string
                       type: array
                     toFQDNs:
@@ -310,7 +256,6 @@ spec:
                           matchName:
                             description: MatchName matches literal DNS names. A trailing
                               "." is automatically added when missing.
-                            pattern: ^([-a-zA-Z0-9_]+[.]?)+$
                             type: string
                           matchPattern:
                             description: "MatchPattern allows using wildcards to match
@@ -321,16 +266,15 @@ spec:
                               \".\" matches all subdomains as well as the name to
                               the right. A trailing \".\" is automatically added when
                               missing. \n Examples: `*.cilium.io` matches subomains
-                              of cilium at that level   www.cilium.io and blog.cilium.io
+                              of cilium at that level www.cilium.io and blog.cilium.io
                               match, cilium.io and google.com do not `*cilium.io`
                               matches cilium.io and all subdomains ends with \"cilium.io\"
-                              \  except those containing \".\" separator, subcilium.io
-                              and sub-cilium.io match,   www.cilium.io and blog.cilium.io
+                              except those containing \".\" separator, subcilium.io
+                              and sub-cilium.io match, www.cilium.io and blog.cilium.io
                               does not sub*.cilium.io matches subdomains of cilium
-                              where the subdomain component begins with \"sub\"   sub.cilium.io
-                              and subdomain.cilium.io match, www.cilium.io,   blog.cilium.io,
+                              where the subdomain component begins with \"sub\" sub.cilium.io
+                              and subdomain.cilium.io match, www.cilium.io, blog.cilium.io,
                               cilium.io and google.com do not"
-                            pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
                             type: string
                         type: object
                       type: array
@@ -338,7 +282,7 @@ spec:
                       description: "ToGroups is a directive that allows the integration
                         with multiple outside providers. Currently, only AWS is supported,
                         and the rule can select by multiple sub directives: \n Example:
-                        toGroups: - aws:     securityGroupsIds:     - 'sg-XXXXXXXXXXXXX'"
+                        toGroups: - aws: securityGroupsIds: - 'sg-XXXXXXXXXXXXX'"
                       items:
                         description: ToGroups structure to store all kinds of new
                           integrations that needs a new derivative policy.
@@ -392,22 +336,18 @@ spec:
                                       from CiliumNetworkPolicy, as using a namespaced
                                       listener from a cluster scoped policy is not
                                       allowed.
-                                    enum:
-                                    - CiliumEnvoyConfig
-                                    - CiliumClusterwideEnvoyConfig
                                     type: string
                                   name:
                                     description: Name is the resource name of the
                                       CiliumEnvoyConfig or CiliumClusterwideEnvoyConfig
                                       where the listener is defined in.
-                                    minLength: 1
                                     type: string
                                 required:
+                                - kind
                                 - name
                                 type: object
                               name:
                                 description: Name is the name of the listener.
-                                minLength: 1
                                 type: string
                             required:
                             - envoyConfig
@@ -438,11 +378,11 @@ spec:
                                 description: 'Secret is the secret that contains the
                                   certificates and private key for the TLS context.
                                   By default, Cilium will search in this secret for
-                                  the following items:  - ''ca.crt''  - Which represents
-                                  the trusted CA to verify remote source.  - ''tls.crt''
-                                  - Which represents the public key certificate.  -
+                                  the following items: - ''ca.crt''  - Which represents
+                                  the trusted CA to verify remote source. - ''tls.crt''
+                                  - Which represents the public key certificate. -
                                   ''tls.key'' - Which represents the private key matching
-                                  the public key                certificate.'
+                                  the public key certificate.'
                                 properties:
                                   name:
                                     description: Name is the name of the secret.
@@ -479,7 +419,6 @@ spec:
                                     and may also contain [0-9] and '-' anywhere except
                                     adjacent to another '-' or in the beginning or
                                     the end.
-                                  pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                   type: string
                                 protocol:
                                   description: "Protocol is the L4 protocol. If omitted
@@ -488,11 +427,6 @@ spec:
                                     on ICMP is not supported. \n Named port specified
                                     for a container may narrow this down, but may
                                     not contradict this."
-                                  enum:
-                                  - TCP
-                                  - UDP
-                                  - SCTP
-                                  - ANY
                                   type: string
                               required:
                               - port
@@ -514,7 +448,6 @@ spec:
                                       description: MatchName matches literal DNS names.
                                         A trailing "." is automatically added when
                                         missing.
-                                      pattern: ^([-a-zA-Z0-9_]+[.]?)+$
                                       type: string
                                     matchPattern:
                                       description: "MatchPattern allows using wildcards
@@ -527,18 +460,17 @@ spec:
                                         well as the name to the right. A trailing
                                         \".\" is automatically added when missing.
                                         \n Examples: `*.cilium.io` matches subomains
-                                        of cilium at that level   www.cilium.io and
+                                        of cilium at that level www.cilium.io and
                                         blog.cilium.io match, cilium.io and google.com
                                         do not `*cilium.io` matches cilium.io and
-                                        all subdomains ends with \"cilium.io\"   except
+                                        all subdomains ends with \"cilium.io\" except
                                         those containing \".\" separator, subcilium.io
-                                        and sub-cilium.io match,   www.cilium.io and
+                                        and sub-cilium.io match, www.cilium.io and
                                         blog.cilium.io does not sub*.cilium.io matches
                                         subdomains of cilium where the subdomain component
-                                        begins with \"sub\"   sub.cilium.io and subdomain.cilium.io
-                                        match, www.cilium.io,   blog.cilium.io, cilium.io
+                                        begins with \"sub\" sub.cilium.io and subdomain.cilium.io
+                                        match, www.cilium.io, blog.cilium.io, cilium.io
                                         and google.com do not"
-                                      pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
                                       type: string
                                   type: object
                                 type: array
@@ -577,11 +509,6 @@ spec:
                                               the overall rule is still considered
                                               as matching, but the mismatches are
                                               logged in the access log.
-                                            enum:
-                                            - LOG
-                                            - ADD
-                                            - DELETE
-                                            - REPLACE
                                             type: string
                                           name:
                                             description: Name identifies the header.
@@ -631,7 +558,6 @@ spec:
                                         matched against the host header of a request,
                                         e.g. \"foo.com\" \n If omitted or empty, the
                                         value of the host header is ignored."
-                                      format: idn-hostname
                                       type: string
                                     method:
                                       description: "Method is an extended POSIX regex
@@ -696,15 +622,15 @@ spec:
                                         such as \"produce\" or \"consume\". A Role
                                         automatically expands into all APIKeys required
                                         to perform the specified higher-level operation.
-                                        \n The following values are supported:  -
-                                        \"produce\": Allow producing to the topics
-                                        specified in the rule  - \"consume\": Allow
-                                        consuming from the topics specified in the
-                                        rule \n This field is incompatible with the
-                                        APIKey field, i.e APIKey and Role cannot both
-                                        be specified in the same rule. \n If omitted
-                                        or empty, and if APIKey is not specified,
-                                        then all keys are allowed."
+                                        \n The following values are supported: - \"produce\":
+                                        Allow producing to the topics specified in
+                                        the rule - \"consume\": Allow consuming from
+                                        the topics specified in the rule \n This field
+                                        is incompatible with the APIKey field, i.e
+                                        APIKey and Role cannot both be specified in
+                                        the same rule. \n If omitted or empty, and
+                                        if APIKey is not specified, then all keys
+                                        are allowed."
                                       enum:
                                       - produce
                                       - consume
@@ -777,11 +703,11 @@ spec:
                                 description: 'Secret is the secret that contains the
                                   certificates and private key for the TLS context.
                                   By default, Cilium will search in this secret for
-                                  the following items:  - ''ca.crt''  - Which represents
-                                  the trusted CA to verify remote source.  - ''tls.crt''
-                                  - Which represents the public key certificate.  -
+                                  the following items: - ''ca.crt''  - Which represents
+                                  the trusted CA to verify remote source. - ''tls.crt''
+                                  - Which represents the public key certificate. -
                                   ''tls.key'' - Which represents the private key matching
-                                  the public key                certificate.'
+                                  the public key certificate.'
                                 properties:
                                   name:
                                     description: Name is the name of the secret.
@@ -832,11 +758,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -855,10 +776,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -914,11 +831,6 @@ spec:
                                           description: operator represents a key's
                                             relationship to a set of values. Valid
                                             operators are In, NotIn, Exists and DoesNotExist.
-                                          enum:
-                                          - In
-                                          - NotIn
-                                          - Exists
-                                          - DoesNotExist
                                           type: string
                                         values:
                                           description: values is an array of string
@@ -937,10 +849,6 @@ spec:
                                     type: array
                                   matchLabels:
                                     additionalProperties:
-                                      description: MatchLabelsValue represents the
-                                        value from the MatchLabels {key,value} pair.
-                                      maxLength: 63
-                                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                       type: string
                                     description: matchLabels is a map of {key,value}
                                       pairs. A single {key,value} in the matchLabels
@@ -966,15 +874,15 @@ spec:
                   description: "EgressDenyRule contains all rule types which can be
                     applied at egress, i.e. network traffic that originates inside
                     the endpoint and exits the endpoint selected by the endpointSelector.
-                    \n   - All members of this structure are optional. If omitted
-                    or empty, the     member will have no effect on the rule. \n   -
-                    If multiple members of the structure are specified, then all members
-                    \    must match in order for the rule to take effect. The exception
-                    to this     rule is the ToRequires member; the effects of any
-                    Requires field in any     rule will apply to all other rules as
-                    well. \n   - ToEndpoints, ToCIDR, ToCIDRSet, ToEntities, ToServices
-                    and ToGroups are     mutually exclusive. Only one of these members
-                    may be present within an     individual rule."
+                    \n - All members of this structure are optional. If omitted or
+                    empty, the member will have no effect on the rule. \n - If multiple
+                    members of the structure are specified, then all members must
+                    match in order for the rule to take effect. The exception to this
+                    rule is the ToRequires member; the effects of any Requires field
+                    in any rule will apply to all other rules as well. \n - ToEndpoints,
+                    ToCIDR, ToCIDRSet, ToEntities, ToServices and ToGroups are mutually
+                    exclusive. Only one of these members may be present within an
+                    individual rule."
                   properties:
                     icmps:
                       description: "ICMPs is a list of ICMP rule identified by type
@@ -990,19 +898,13 @@ spec:
                               description: ICMPField is a ICMP field.
                               properties:
                                 family:
-                                  default: IPv4
                                   description: Family is a IP address version. Currently,
                                     we support `IPv4` and `IPv6`. `IPv4` is set as
                                     default.
-                                  enum:
-                                  - IPv4
-                                  - IPv6
                                   type: string
                                 type:
                                   description: Type is a ICMP-type. It should be 0-255
                                     (8bit).
-                                  maximum: 255
-                                  minimum: 0
                                   type: integer
                               required:
                               - type
@@ -1023,7 +925,6 @@ spec:
                       items:
                         description: 'CIDR specifies a block of IP addresses. Example:
                           192.0.2.1/32'
-                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                         type: string
                       type: array
                     toCIDRSet:
@@ -1043,27 +944,15 @@ spec:
                           to/from which outside communication  is allowed, along with
                           an optional list of subnets within that CIDR prefix to/from
                           which outside communication is not allowed.
-                        oneOf:
-                        - properties:
-                            cidr: {}
-                          required:
-                          - cidr
-                        - properties:
-                            cidrGroupRef: {}
-                          required:
-                          - cidrGroupRef
                         properties:
                           cidr:
                             description: CIDR is a CIDR prefix / IP Block.
-                            pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                             type: string
                           cidrGroupRef:
                             description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                               object. A CiliumCIDRGroup contains a list of CIDRs that
                               the endpoint, subject to the rule, can (Ingress) or
                               cannot (IngressDeny) receive connections from.
-                            maxLength: 253
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                           except:
                             description: ExceptCIDRs is a list of IP blocks which
@@ -1076,9 +965,10 @@ spec:
                             items:
                               description: 'CIDR specifies a block of IP addresses.
                                 Example: 192.0.2.1/32'
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             type: array
+                        required:
+                        - cidr
                         type: object
                       type: array
                     toEndpoints:
@@ -1106,11 +996,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -1129,10 +1014,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -1151,25 +1032,13 @@ spec:
                         description: Entity specifies the class of receiver/sender
                           endpoints that do not have individual identities.  Entities
                           are used to describe "outside of cluster", "host", etc.
-                        enum:
-                        - all
-                        - world
-                        - cluster
-                        - host
-                        - init
-                        - ingress
-                        - unmanaged
-                        - remote-node
-                        - health
-                        - none
-                        - kube-apiserver
                         type: string
                       type: array
                     toGroups:
                       description: "ToGroups is a directive that allows the integration
                         with multiple outside providers. Currently, only AWS is supported,
                         and the rule can select by multiple sub directives: \n Example:
-                        toGroups: - aws:     securityGroupsIds:     - 'sg-XXXXXXXXXXXXX'"
+                        toGroups: - aws: securityGroupsIds: - 'sg-XXXXXXXXXXXXX'"
                       items:
                         description: ToGroups structure to store all kinds of new
                           integrations that needs a new derivative policy.
@@ -1221,7 +1090,6 @@ spec:
                                     and may also contain [0-9] and '-' anywhere except
                                     adjacent to another '-' or in the beginning or
                                     the end.
-                                  pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                   type: string
                                 protocol:
                                   description: "Protocol is the L4 protocol. If omitted
@@ -1230,11 +1098,6 @@ spec:
                                     on ICMP is not supported. \n Named port specified
                                     for a container may narrow this down, but may
                                     not contradict this."
-                                  enum:
-                                  - TCP
-                                  - UDP
-                                  - SCTP
-                                  - ANY
                                   type: string
                               required:
                               - port
@@ -1269,11 +1132,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -1292,10 +1150,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -1351,11 +1205,6 @@ spec:
                                           description: operator represents a key's
                                             relationship to a set of values. Valid
                                             operators are In, NotIn, Exists and DoesNotExist.
-                                          enum:
-                                          - In
-                                          - NotIn
-                                          - Exists
-                                          - DoesNotExist
                                           type: string
                                         values:
                                           description: values is an array of string
@@ -1374,10 +1223,6 @@ spec:
                                     type: array
                                   matchLabels:
                                     additionalProperties:
-                                      description: MatchLabelsValue represents the
-                                        value from the MatchLabels {key,value} pair.
-                                      maxLength: 63
-                                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                       type: string
                                     description: matchLabels is a map of {key,value}
                                       pairs. A single {key,value} in the matchLabels
@@ -1415,11 +1260,6 @@ spec:
                           description: operator represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
-                          enum:
-                          - In
-                          - NotIn
-                          - Exists
-                          - DoesNotExist
                           type: string
                         values:
                           description: values is an array of string values. If the
@@ -1437,10 +1277,6 @@ spec:
                     type: array
                   matchLabels:
                     additionalProperties:
-                      description: MatchLabelsValue represents the value from the
-                        MatchLabels {key,value} pair.
-                      maxLength: 63
-                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
@@ -1456,15 +1292,14 @@ spec:
                   description: "IngressRule contains all rule types which can be applied
                     at ingress, i.e. network traffic that originates outside of the
                     endpoint and is entering the endpoint selected by the endpointSelector.
-                    \n   - All members of this structure are optional. If omitted
-                    or empty, the     member will have no effect on the rule. \n   -
-                    If multiple members are set, all of them need to match in order
-                    for     the rule to take effect. The exception to this rule is
-                    FromRequires field;     the effects of any Requires field in any
-                    rule will apply to all other     rules as well. \n   - FromEndpoints,
-                    FromCIDR, FromCIDRSet and FromEntities are mutually     exclusive.
-                    Only one of these members may be present within an individual
-                    \    rule."
+                    \n - All members of this structure are optional. If omitted or
+                    empty, the member will have no effect on the rule. \n - If multiple
+                    members are set, all of them need to match in order for the rule
+                    to take effect. The exception to this rule is FromRequires field;
+                    the effects of any Requires field in any rule will apply to all
+                    other rules as well. \n - FromEndpoints, FromCIDR, FromCIDRSet
+                    and FromEntities are mutually exclusive. Only one of these members
+                    may be present within an individual rule."
                   properties:
                     auth:
                       description: Auth is the required authentication type for the
@@ -1473,10 +1308,6 @@ spec:
                         type:
                           description: Type is the required authentication type for
                             the allowed traffic, if any.
-                          enum:
-                          - "null"
-                          - mtls-spiffe
-                          - always-fail
                           type: string
                       required:
                       - type
@@ -1496,7 +1327,6 @@ spec:
                       items:
                         description: 'CIDR specifies a block of IP addresses. Example:
                           192.0.2.1/32'
-                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                         type: string
                       type: array
                     fromCIDRSet:
@@ -1516,27 +1346,15 @@ spec:
                           to/from which outside communication  is allowed, along with
                           an optional list of subnets within that CIDR prefix to/from
                           which outside communication is not allowed.
-                        oneOf:
-                        - properties:
-                            cidr: {}
-                          required:
-                          - cidr
-                        - properties:
-                            cidrGroupRef: {}
-                          required:
-                          - cidrGroupRef
                         properties:
                           cidr:
                             description: CIDR is a CIDR prefix / IP Block.
-                            pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                             type: string
                           cidrGroupRef:
                             description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                               object. A CiliumCIDRGroup contains a list of CIDRs that
                               the endpoint, subject to the rule, can (Ingress) or
                               cannot (IngressDeny) receive connections from.
-                            maxLength: 253
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                           except:
                             description: ExceptCIDRs is a list of IP blocks which
@@ -1549,9 +1367,10 @@ spec:
                             items:
                               description: 'CIDR specifies a block of IP addresses.
                                 Example: 192.0.2.1/32'
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             type: array
+                        required:
+                        - cidr
                         type: object
                       type: array
                     fromEndpoints:
@@ -1579,11 +1398,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -1602,10 +1416,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -1623,18 +1433,6 @@ spec:
                         description: Entity specifies the class of receiver/sender
                           endpoints that do not have individual identities.  Entities
                           are used to describe "outside of cluster", "host", etc.
-                        enum:
-                        - all
-                        - world
-                        - cluster
-                        - host
-                        - init
-                        - ingress
-                        - unmanaged
-                        - remote-node
-                        - health
-                        - none
-                        - kube-apiserver
                         type: string
                       type: array
                     fromRequires:
@@ -1664,11 +1462,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -1687,10 +1480,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -1714,19 +1503,13 @@ spec:
                               description: ICMPField is a ICMP field.
                               properties:
                                 family:
-                                  default: IPv4
                                   description: Family is a IP address version. Currently,
                                     we support `IPv4` and `IPv6`. `IPv4` is set as
                                     default.
-                                  enum:
-                                  - IPv4
-                                  - IPv6
                                   type: string
                                 type:
                                   description: Type is a ICMP-type. It should be 0-255
                                     (8bit).
-                                  maximum: 255
-                                  minimum: 0
                                   type: integer
                               required:
                               - type
@@ -1762,22 +1545,18 @@ spec:
                                       from CiliumNetworkPolicy, as using a namespaced
                                       listener from a cluster scoped policy is not
                                       allowed.
-                                    enum:
-                                    - CiliumEnvoyConfig
-                                    - CiliumClusterwideEnvoyConfig
                                     type: string
                                   name:
                                     description: Name is the resource name of the
                                       CiliumEnvoyConfig or CiliumClusterwideEnvoyConfig
                                       where the listener is defined in.
-                                    minLength: 1
                                     type: string
                                 required:
+                                - kind
                                 - name
                                 type: object
                               name:
                                 description: Name is the name of the listener.
-                                minLength: 1
                                 type: string
                             required:
                             - envoyConfig
@@ -1808,11 +1587,11 @@ spec:
                                 description: 'Secret is the secret that contains the
                                   certificates and private key for the TLS context.
                                   By default, Cilium will search in this secret for
-                                  the following items:  - ''ca.crt''  - Which represents
-                                  the trusted CA to verify remote source.  - ''tls.crt''
-                                  - Which represents the public key certificate.  -
+                                  the following items: - ''ca.crt''  - Which represents
+                                  the trusted CA to verify remote source. - ''tls.crt''
+                                  - Which represents the public key certificate. -
                                   ''tls.key'' - Which represents the private key matching
-                                  the public key                certificate.'
+                                  the public key certificate.'
                                 properties:
                                   name:
                                     description: Name is the name of the secret.
@@ -1849,7 +1628,6 @@ spec:
                                     and may also contain [0-9] and '-' anywhere except
                                     adjacent to another '-' or in the beginning or
                                     the end.
-                                  pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                   type: string
                                 protocol:
                                   description: "Protocol is the L4 protocol. If omitted
@@ -1858,11 +1636,6 @@ spec:
                                     on ICMP is not supported. \n Named port specified
                                     for a container may narrow this down, but may
                                     not contradict this."
-                                  enum:
-                                  - TCP
-                                  - UDP
-                                  - SCTP
-                                  - ANY
                                   type: string
                               required:
                               - port
@@ -1884,7 +1657,6 @@ spec:
                                       description: MatchName matches literal DNS names.
                                         A trailing "." is automatically added when
                                         missing.
-                                      pattern: ^([-a-zA-Z0-9_]+[.]?)+$
                                       type: string
                                     matchPattern:
                                       description: "MatchPattern allows using wildcards
@@ -1897,18 +1669,17 @@ spec:
                                         well as the name to the right. A trailing
                                         \".\" is automatically added when missing.
                                         \n Examples: `*.cilium.io` matches subomains
-                                        of cilium at that level   www.cilium.io and
+                                        of cilium at that level www.cilium.io and
                                         blog.cilium.io match, cilium.io and google.com
                                         do not `*cilium.io` matches cilium.io and
-                                        all subdomains ends with \"cilium.io\"   except
+                                        all subdomains ends with \"cilium.io\" except
                                         those containing \".\" separator, subcilium.io
-                                        and sub-cilium.io match,   www.cilium.io and
+                                        and sub-cilium.io match, www.cilium.io and
                                         blog.cilium.io does not sub*.cilium.io matches
                                         subdomains of cilium where the subdomain component
-                                        begins with \"sub\"   sub.cilium.io and subdomain.cilium.io
-                                        match, www.cilium.io,   blog.cilium.io, cilium.io
+                                        begins with \"sub\" sub.cilium.io and subdomain.cilium.io
+                                        match, www.cilium.io, blog.cilium.io, cilium.io
                                         and google.com do not"
-                                      pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
                                       type: string
                                   type: object
                                 type: array
@@ -1947,11 +1718,6 @@ spec:
                                               the overall rule is still considered
                                               as matching, but the mismatches are
                                               logged in the access log.
-                                            enum:
-                                            - LOG
-                                            - ADD
-                                            - DELETE
-                                            - REPLACE
                                             type: string
                                           name:
                                             description: Name identifies the header.
@@ -2001,7 +1767,6 @@ spec:
                                         matched against the host header of a request,
                                         e.g. \"foo.com\" \n If omitted or empty, the
                                         value of the host header is ignored."
-                                      format: idn-hostname
                                       type: string
                                     method:
                                       description: "Method is an extended POSIX regex
@@ -2066,15 +1831,15 @@ spec:
                                         such as \"produce\" or \"consume\". A Role
                                         automatically expands into all APIKeys required
                                         to perform the specified higher-level operation.
-                                        \n The following values are supported:  -
-                                        \"produce\": Allow producing to the topics
-                                        specified in the rule  - \"consume\": Allow
-                                        consuming from the topics specified in the
-                                        rule \n This field is incompatible with the
-                                        APIKey field, i.e APIKey and Role cannot both
-                                        be specified in the same rule. \n If omitted
-                                        or empty, and if APIKey is not specified,
-                                        then all keys are allowed."
+                                        \n The following values are supported: - \"produce\":
+                                        Allow producing to the topics specified in
+                                        the rule - \"consume\": Allow consuming from
+                                        the topics specified in the rule \n This field
+                                        is incompatible with the APIKey field, i.e
+                                        APIKey and Role cannot both be specified in
+                                        the same rule. \n If omitted or empty, and
+                                        if APIKey is not specified, then all keys
+                                        are allowed."
                                       enum:
                                       - produce
                                       - consume
@@ -2147,11 +1912,11 @@ spec:
                                 description: 'Secret is the secret that contains the
                                   certificates and private key for the TLS context.
                                   By default, Cilium will search in this secret for
-                                  the following items:  - ''ca.crt''  - Which represents
-                                  the trusted CA to verify remote source.  - ''tls.crt''
-                                  - Which represents the public key certificate.  -
+                                  the following items: - ''ca.crt''  - Which represents
+                                  the trusted CA to verify remote source. - ''tls.crt''
+                                  - Which represents the public key certificate. -
                                   ''tls.key'' - Which represents the private key matching
-                                  the public key                certificate.'
+                                  the public key certificate.'
                                 properties:
                                   name:
                                     description: Name is the name of the secret.
@@ -2186,15 +1951,14 @@ spec:
                   description: "IngressDenyRule contains all rule types which can
                     be applied at ingress, i.e. network traffic that originates outside
                     of the endpoint and is entering the endpoint selected by the endpointSelector.
-                    \n   - All members of this structure are optional. If omitted
-                    or empty, the     member will have no effect on the rule. \n   -
-                    If multiple members are set, all of them need to match in order
-                    for     the rule to take effect. The exception to this rule is
-                    FromRequires field;     the effects of any Requires field in any
-                    rule will apply to all other     rules as well. \n   - FromEndpoints,
-                    FromCIDR, FromCIDRSet and FromEntities are mutually     exclusive.
-                    Only one of these members may be present within an individual
-                    \    rule."
+                    \n - All members of this structure are optional. If omitted or
+                    empty, the member will have no effect on the rule. \n - If multiple
+                    members are set, all of them need to match in order for the rule
+                    to take effect. The exception to this rule is FromRequires field;
+                    the effects of any Requires field in any rule will apply to all
+                    other rules as well. \n - FromEndpoints, FromCIDR, FromCIDRSet
+                    and FromEntities are mutually exclusive. Only one of these members
+                    may be present within an individual rule."
                   properties:
                     fromCIDR:
                       description: "FromCIDR is a list of IP blocks which the endpoint
@@ -2211,7 +1975,6 @@ spec:
                       items:
                         description: 'CIDR specifies a block of IP addresses. Example:
                           192.0.2.1/32'
-                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                         type: string
                       type: array
                     fromCIDRSet:
@@ -2231,27 +1994,15 @@ spec:
                           to/from which outside communication  is allowed, along with
                           an optional list of subnets within that CIDR prefix to/from
                           which outside communication is not allowed.
-                        oneOf:
-                        - properties:
-                            cidr: {}
-                          required:
-                          - cidr
-                        - properties:
-                            cidrGroupRef: {}
-                          required:
-                          - cidrGroupRef
                         properties:
                           cidr:
                             description: CIDR is a CIDR prefix / IP Block.
-                            pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                             type: string
                           cidrGroupRef:
                             description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                               object. A CiliumCIDRGroup contains a list of CIDRs that
                               the endpoint, subject to the rule, can (Ingress) or
                               cannot (IngressDeny) receive connections from.
-                            maxLength: 253
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                           except:
                             description: ExceptCIDRs is a list of IP blocks which
@@ -2264,9 +2015,10 @@ spec:
                             items:
                               description: 'CIDR specifies a block of IP addresses.
                                 Example: 192.0.2.1/32'
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             type: array
+                        required:
+                        - cidr
                         type: object
                       type: array
                     fromEndpoints:
@@ -2294,11 +2046,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -2317,10 +2064,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -2338,18 +2081,6 @@ spec:
                         description: Entity specifies the class of receiver/sender
                           endpoints that do not have individual identities.  Entities
                           are used to describe "outside of cluster", "host", etc.
-                        enum:
-                        - all
-                        - world
-                        - cluster
-                        - host
-                        - init
-                        - ingress
-                        - unmanaged
-                        - remote-node
-                        - health
-                        - none
-                        - kube-apiserver
                         type: string
                       type: array
                     fromRequires:
@@ -2379,11 +2110,6 @@ spec:
                                   description: operator represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
-                                  enum:
-                                  - In
-                                  - NotIn
-                                  - Exists
-                                  - DoesNotExist
                                   type: string
                                 values:
                                   description: values is an array of string values.
@@ -2402,10 +2128,6 @@ spec:
                             type: array
                           matchLabels:
                             additionalProperties:
-                              description: MatchLabelsValue represents the value from
-                                the MatchLabels {key,value} pair.
-                              maxLength: 63
-                              pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                               type: string
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
@@ -2429,19 +2151,13 @@ spec:
                               description: ICMPField is a ICMP field.
                               properties:
                                 family:
-                                  default: IPv4
                                   description: Family is a IP address version. Currently,
                                     we support `IPv4` and `IPv6`. `IPv4` is set as
                                     default.
-                                  enum:
-                                  - IPv4
-                                  - IPv6
                                   type: string
                                 type:
                                   description: Type is a ICMP-type. It should be 0-255
                                     (8bit).
-                                  maximum: 255
-                                  minimum: 0
                                   type: integer
                               required:
                               - type
@@ -2475,7 +2191,6 @@ spec:
                                     and may also contain [0-9] and '-' anywhere except
                                     adjacent to another '-' or in the beginning or
                                     the end.
-                                  pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                   type: string
                                 protocol:
                                   description: "Protocol is the L4 protocol. If omitted
@@ -2484,11 +2199,6 @@ spec:
                                     on ICMP is not supported. \n Named port specified
                                     for a container may narrow this down, but may
                                     not contradict this."
-                                  enum:
-                                  - TCP
-                                  - UDP
-                                  - SCTP
-                                  - ANY
                                   type: string
                               required:
                               - port
@@ -2539,11 +2249,6 @@ spec:
                           description: operator represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
-                          enum:
-                          - In
-                          - NotIn
-                          - Exists
-                          - DoesNotExist
                           type: string
                         values:
                           description: values is an array of string values. If the
@@ -2561,10 +2266,6 @@ spec:
                     type: array
                   matchLabels:
                     additionalProperties:
-                      description: MatchLabelsValue represents the value from the
-                        MatchLabels {key,value} pair.
-                      maxLength: 63
-                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
@@ -2586,15 +2287,6 @@ spec:
                 the connection or one side has to be omitted. \n Either ingress, egress,
                 or both can be provided. If both ingress and egress are omitted, the
                 rule has no effect."
-              oneOf:
-              - properties:
-                  endpointSelector: {}
-                required:
-                - endpointSelector
-              - properties:
-                  nodeSelector: {}
-                required:
-                - nodeSelector
               properties:
                 description:
                   description: Description is a free form string, it can be used by
@@ -2608,16 +2300,15 @@ spec:
                     description: "EgressRule contains all rule types which can be
                       applied at egress, i.e. network traffic that originates inside
                       the endpoint and exits the endpoint selected by the endpointSelector.
-                      \n   - All members of this structure are optional. If omitted
-                      or empty, the     member will have no effect on the rule. \n
-                      \  - If multiple members of the structure are specified, then
-                      all members     must match in order for the rule to take effect.
-                      The exception to this     rule is the ToRequires member; the
-                      effects of any Requires field in any     rule will apply to
-                      all other rules as well. \n   - ToEndpoints, ToCIDR, ToCIDRSet,
-                      ToEntities, ToServices and ToGroups are     mutually exclusive.
-                      Only one of these members may be present within an     individual
-                      rule."
+                      \n - All members of this structure are optional. If omitted
+                      or empty, the member will have no effect on the rule. \n - If
+                      multiple members of the structure are specified, then all members
+                      must match in order for the rule to take effect. The exception
+                      to this rule is the ToRequires member; the effects of any Requires
+                      field in any rule will apply to all other rules as well. \n
+                      - ToEndpoints, ToCIDR, ToCIDRSet, ToEntities, ToServices and
+                      ToGroups are mutually exclusive. Only one of these members may
+                      be present within an individual rule."
                     properties:
                       auth:
                         description: Auth is the required authentication type for
@@ -2626,10 +2317,6 @@ spec:
                           type:
                             description: Type is the required authentication type
                               for the allowed traffic, if any.
-                            enum:
-                            - "null"
-                            - mtls-spiffe
-                            - always-fail
                             type: string
                         required:
                         - type
@@ -2648,19 +2335,13 @@ spec:
                                 description: ICMPField is a ICMP field.
                                 properties:
                                   family:
-                                    default: IPv4
                                     description: Family is a IP address version. Currently,
                                       we support `IPv4` and `IPv6`. `IPv4` is set
                                       as default.
-                                    enum:
-                                    - IPv4
-                                    - IPv6
                                     type: string
                                   type:
                                     description: Type is a ICMP-type. It should be
                                       0-255 (8bit).
-                                    maximum: 255
-                                    minimum: 0
                                     type: integer
                                 required:
                                 - type
@@ -2681,7 +2362,6 @@ spec:
                         items:
                           description: 'CIDR specifies a block of IP addresses. Example:
                             192.0.2.1/32'
-                          pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                           type: string
                         type: array
                       toCIDRSet:
@@ -2701,27 +2381,15 @@ spec:
                             to/from which outside communication  is allowed, along
                             with an optional list of subnets within that CIDR prefix
                             to/from which outside communication is not allowed.
-                          oneOf:
-                          - properties:
-                              cidr: {}
-                            required:
-                            - cidr
-                          - properties:
-                              cidrGroupRef: {}
-                            required:
-                            - cidrGroupRef
                           properties:
                             cidr:
                               description: CIDR is a CIDR prefix / IP Block.
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             cidrGroupRef:
                               description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                                 object. A CiliumCIDRGroup contains a list of CIDRs
                                 that the endpoint, subject to the rule, can (Ingress)
                                 or cannot (IngressDeny) receive connections from.
-                              maxLength: 253
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             except:
                               description: ExceptCIDRs is a list of IP blocks which
@@ -2735,9 +2403,10 @@ spec:
                               items:
                                 description: 'CIDR specifies a block of IP addresses.
                                   Example: 192.0.2.1/32'
-                                pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                                 type: string
                               type: array
+                          required:
+                          - cidr
                           type: object
                         type: array
                       toEndpoints:
@@ -2765,11 +2434,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -2788,10 +2452,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -2810,18 +2470,6 @@ spec:
                           description: Entity specifies the class of receiver/sender
                             endpoints that do not have individual identities.  Entities
                             are used to describe "outside of cluster", "host", etc.
-                          enum:
-                          - all
-                          - world
-                          - cluster
-                          - host
-                          - init
-                          - ingress
-                          - unmanaged
-                          - remote-node
-                          - health
-                          - none
-                          - kube-apiserver
                           type: string
                         type: array
                       toFQDNs:
@@ -2853,7 +2501,6 @@ spec:
                             matchName:
                               description: MatchName matches literal DNS names. A
                                 trailing "." is automatically added when missing.
-                              pattern: ^([-a-zA-Z0-9_]+[.]?)+$
                               type: string
                             matchPattern:
                               description: "MatchPattern allows using wildcards to
@@ -2864,17 +2511,16 @@ spec:
                                 without a following \".\" matches all subdomains as
                                 well as the name to the right. A trailing \".\" is
                                 automatically added when missing. \n Examples: `*.cilium.io`
-                                matches subomains of cilium at that level   www.cilium.io
+                                matches subomains of cilium at that level www.cilium.io
                                 and blog.cilium.io match, cilium.io and google.com
                                 do not `*cilium.io` matches cilium.io and all subdomains
-                                ends with \"cilium.io\"   except those containing
-                                \".\" separator, subcilium.io and sub-cilium.io match,
-                                \  www.cilium.io and blog.cilium.io does not sub*.cilium.io
-                                matches subdomains of cilium where the subdomain component
-                                begins with \"sub\"   sub.cilium.io and subdomain.cilium.io
-                                match, www.cilium.io,   blog.cilium.io, cilium.io
-                                and google.com do not"
-                              pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
+                                ends with \"cilium.io\" except those containing \".\"
+                                separator, subcilium.io and sub-cilium.io match, www.cilium.io
+                                and blog.cilium.io does not sub*.cilium.io matches
+                                subdomains of cilium where the subdomain component
+                                begins with \"sub\" sub.cilium.io and subdomain.cilium.io
+                                match, www.cilium.io, blog.cilium.io, cilium.io and
+                                google.com do not"
                               type: string
                           type: object
                         type: array
@@ -2882,8 +2528,7 @@ spec:
                         description: "ToGroups is a directive that allows the integration
                           with multiple outside providers. Currently, only AWS is
                           supported, and the rule can select by multiple sub directives:
-                          \n Example: toGroups: - aws:     securityGroupsIds:     -
-                          'sg-XXXXXXXXXXXXX'"
+                          \n Example: toGroups: - aws: securityGroupsIds: - 'sg-XXXXXXXXXXXXX'"
                         items:
                           description: ToGroups structure to store all kinds of new
                             integrations that needs a new derivative policy.
@@ -2938,22 +2583,18 @@ spec:
                                         from CiliumNetworkPolicy, as using a namespaced
                                         listener from a cluster scoped policy is not
                                         allowed.
-                                      enum:
-                                      - CiliumEnvoyConfig
-                                      - CiliumClusterwideEnvoyConfig
                                       type: string
                                     name:
                                       description: Name is the resource name of the
                                         CiliumEnvoyConfig or CiliumClusterwideEnvoyConfig
                                         where the listener is defined in.
-                                      minLength: 1
                                       type: string
                                   required:
+                                  - kind
                                   - name
                                   type: object
                                 name:
                                   description: Name is the name of the listener.
-                                  minLength: 1
                                   type: string
                               required:
                               - envoyConfig
@@ -2985,11 +2626,11 @@ spec:
                                   description: 'Secret is the secret that contains
                                     the certificates and private key for the TLS context.
                                     By default, Cilium will search in this secret
-                                    for the following items:  - ''ca.crt''  - Which
-                                    represents the trusted CA to verify remote source.  -
-                                    ''tls.crt'' - Which represents the public key
-                                    certificate.  - ''tls.key'' - Which represents
-                                    the private key matching the public key                certificate.'
+                                    for the following items: - ''ca.crt''  - Which
+                                    represents the trusted CA to verify remote source.
+                                    - ''tls.crt'' - Which represents the public key
+                                    certificate. - ''tls.key'' - Which represents
+                                    the private key matching the public key certificate.'
                                   properties:
                                     name:
                                       description: Name is the name of the secret.
@@ -3026,7 +2667,6 @@ spec:
                                       one [a-z], and may also contain [0-9] and '-'
                                       anywhere except adjacent to another '-' or in
                                       the beginning or the end.
-                                    pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                     type: string
                                   protocol:
                                     description: "Protocol is the L4 protocol. If
@@ -3035,11 +2675,6 @@ spec:
                                       \n Matching on ICMP is not supported. \n Named
                                       port specified for a container may narrow this
                                       down, but may not contradict this."
-                                    enum:
-                                    - TCP
-                                    - UDP
-                                    - SCTP
-                                    - ANY
                                     type: string
                                 required:
                                 - port
@@ -3061,7 +2696,6 @@ spec:
                                         description: MatchName matches literal DNS
                                           names. A trailing "." is automatically added
                                           when missing.
-                                        pattern: ^([-a-zA-Z0-9_]+[.]?)+$
                                         type: string
                                       matchPattern:
                                         description: "MatchPattern allows using wildcards
@@ -3074,19 +2708,18 @@ spec:
                                           as well as the name to the right. A trailing
                                           \".\" is automatically added when missing.
                                           \n Examples: `*.cilium.io` matches subomains
-                                          of cilium at that level   www.cilium.io
-                                          and blog.cilium.io match, cilium.io and
-                                          google.com do not `*cilium.io` matches cilium.io
-                                          and all subdomains ends with \"cilium.io\"
-                                          \  except those containing \".\" separator,
-                                          subcilium.io and sub-cilium.io match,   www.cilium.io
-                                          and blog.cilium.io does not sub*.cilium.io
-                                          matches subdomains of cilium where the subdomain
-                                          component begins with \"sub\"   sub.cilium.io
+                                          of cilium at that level www.cilium.io and
+                                          blog.cilium.io match, cilium.io and google.com
+                                          do not `*cilium.io` matches cilium.io and
+                                          all subdomains ends with \"cilium.io\" except
+                                          those containing \".\" separator, subcilium.io
+                                          and sub-cilium.io match, www.cilium.io and
+                                          blog.cilium.io does not sub*.cilium.io matches
+                                          subdomains of cilium where the subdomain
+                                          component begins with \"sub\" sub.cilium.io
                                           and subdomain.cilium.io match, www.cilium.io,
-                                          \  blog.cilium.io, cilium.io and google.com
+                                          blog.cilium.io, cilium.io and google.com
                                           do not"
-                                        pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
                                         type: string
                                     type: object
                                   type: array
@@ -3126,11 +2759,6 @@ spec:
                                                 the overall rule is still considered
                                                 as matching, but the mismatches are
                                                 logged in the access log.
-                                              enum:
-                                              - LOG
-                                              - ADD
-                                              - DELETE
-                                              - REPLACE
                                               type: string
                                             name:
                                               description: Name identifies the header.
@@ -3181,7 +2809,6 @@ spec:
                                           matched against the host header of a request,
                                           e.g. \"foo.com\" \n If omitted or empty,
                                           the value of the host header is ignored."
-                                        format: idn-hostname
                                         type: string
                                       method:
                                         description: "Method is an extended POSIX
@@ -3246,9 +2873,9 @@ spec:
                                           such as \"produce\" or \"consume\". A Role
                                           automatically expands into all APIKeys required
                                           to perform the specified higher-level operation.
-                                          \n The following values are supported:  -
+                                          \n The following values are supported: -
                                           \"produce\": Allow producing to the topics
-                                          specified in the rule  - \"consume\": Allow
+                                          specified in the rule - \"consume\": Allow
                                           consuming from the topics specified in the
                                           rule \n This field is incompatible with
                                           the APIKey field, i.e APIKey and Role cannot
@@ -3331,11 +2958,11 @@ spec:
                                   description: 'Secret is the secret that contains
                                     the certificates and private key for the TLS context.
                                     By default, Cilium will search in this secret
-                                    for the following items:  - ''ca.crt''  - Which
-                                    represents the trusted CA to verify remote source.  -
-                                    ''tls.crt'' - Which represents the public key
-                                    certificate.  - ''tls.key'' - Which represents
-                                    the private key matching the public key                certificate.'
+                                    for the following items: - ''ca.crt''  - Which
+                                    represents the trusted CA to verify remote source.
+                                    - ''tls.crt'' - Which represents the public key
+                                    certificate. - ''tls.key'' - Which represents
+                                    the private key matching the public key certificate.'
                                   properties:
                                     name:
                                       description: Name is the name of the secret.
@@ -3387,11 +3014,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -3410,10 +3032,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -3471,11 +3089,6 @@ spec:
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
-                                            enum:
-                                            - In
-                                            - NotIn
-                                            - Exists
-                                            - DoesNotExist
                                             type: string
                                           values:
                                             description: values is an array of string
@@ -3495,10 +3108,6 @@ spec:
                                       type: array
                                     matchLabels:
                                       additionalProperties:
-                                        description: MatchLabelsValue represents the
-                                          value from the MatchLabels {key,value} pair.
-                                        maxLength: 63
-                                        pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                         type: string
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
@@ -3524,16 +3133,15 @@ spec:
                     description: "EgressDenyRule contains all rule types which can
                       be applied at egress, i.e. network traffic that originates inside
                       the endpoint and exits the endpoint selected by the endpointSelector.
-                      \n   - All members of this structure are optional. If omitted
-                      or empty, the     member will have no effect on the rule. \n
-                      \  - If multiple members of the structure are specified, then
-                      all members     must match in order for the rule to take effect.
-                      The exception to this     rule is the ToRequires member; the
-                      effects of any Requires field in any     rule will apply to
-                      all other rules as well. \n   - ToEndpoints, ToCIDR, ToCIDRSet,
-                      ToEntities, ToServices and ToGroups are     mutually exclusive.
-                      Only one of these members may be present within an     individual
-                      rule."
+                      \n - All members of this structure are optional. If omitted
+                      or empty, the member will have no effect on the rule. \n - If
+                      multiple members of the structure are specified, then all members
+                      must match in order for the rule to take effect. The exception
+                      to this rule is the ToRequires member; the effects of any Requires
+                      field in any rule will apply to all other rules as well. \n
+                      - ToEndpoints, ToCIDR, ToCIDRSet, ToEntities, ToServices and
+                      ToGroups are mutually exclusive. Only one of these members may
+                      be present within an individual rule."
                     properties:
                       icmps:
                         description: "ICMPs is a list of ICMP rule identified by type
@@ -3549,19 +3157,13 @@ spec:
                                 description: ICMPField is a ICMP field.
                                 properties:
                                   family:
-                                    default: IPv4
                                     description: Family is a IP address version. Currently,
                                       we support `IPv4` and `IPv6`. `IPv4` is set
                                       as default.
-                                    enum:
-                                    - IPv4
-                                    - IPv6
                                     type: string
                                   type:
                                     description: Type is a ICMP-type. It should be
                                       0-255 (8bit).
-                                    maximum: 255
-                                    minimum: 0
                                     type: integer
                                 required:
                                 - type
@@ -3582,7 +3184,6 @@ spec:
                         items:
                           description: 'CIDR specifies a block of IP addresses. Example:
                             192.0.2.1/32'
-                          pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                           type: string
                         type: array
                       toCIDRSet:
@@ -3602,27 +3203,15 @@ spec:
                             to/from which outside communication  is allowed, along
                             with an optional list of subnets within that CIDR prefix
                             to/from which outside communication is not allowed.
-                          oneOf:
-                          - properties:
-                              cidr: {}
-                            required:
-                            - cidr
-                          - properties:
-                              cidrGroupRef: {}
-                            required:
-                            - cidrGroupRef
                           properties:
                             cidr:
                               description: CIDR is a CIDR prefix / IP Block.
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             cidrGroupRef:
                               description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                                 object. A CiliumCIDRGroup contains a list of CIDRs
                                 that the endpoint, subject to the rule, can (Ingress)
                                 or cannot (IngressDeny) receive connections from.
-                              maxLength: 253
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             except:
                               description: ExceptCIDRs is a list of IP blocks which
@@ -3636,9 +3225,10 @@ spec:
                               items:
                                 description: 'CIDR specifies a block of IP addresses.
                                   Example: 192.0.2.1/32'
-                                pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                                 type: string
                               type: array
+                          required:
+                          - cidr
                           type: object
                         type: array
                       toEndpoints:
@@ -3666,11 +3256,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -3689,10 +3274,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -3711,26 +3292,13 @@ spec:
                           description: Entity specifies the class of receiver/sender
                             endpoints that do not have individual identities.  Entities
                             are used to describe "outside of cluster", "host", etc.
-                          enum:
-                          - all
-                          - world
-                          - cluster
-                          - host
-                          - init
-                          - ingress
-                          - unmanaged
-                          - remote-node
-                          - health
-                          - none
-                          - kube-apiserver
                           type: string
                         type: array
                       toGroups:
                         description: "ToGroups is a directive that allows the integration
                           with multiple outside providers. Currently, only AWS is
                           supported, and the rule can select by multiple sub directives:
-                          \n Example: toGroups: - aws:     securityGroupsIds:     -
-                          'sg-XXXXXXXXXXXXX'"
+                          \n Example: toGroups: - aws: securityGroupsIds: - 'sg-XXXXXXXXXXXXX'"
                         items:
                           description: ToGroups structure to store all kinds of new
                             integrations that needs a new derivative policy.
@@ -3782,7 +3350,6 @@ spec:
                                       one [a-z], and may also contain [0-9] and '-'
                                       anywhere except adjacent to another '-' or in
                                       the beginning or the end.
-                                    pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                     type: string
                                   protocol:
                                     description: "Protocol is the L4 protocol. If
@@ -3791,11 +3358,6 @@ spec:
                                       \n Matching on ICMP is not supported. \n Named
                                       port specified for a container may narrow this
                                       down, but may not contradict this."
-                                    enum:
-                                    - TCP
-                                    - UDP
-                                    - SCTP
-                                    - ANY
                                     type: string
                                 required:
                                 - port
@@ -3831,11 +3393,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -3854,10 +3411,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -3915,11 +3468,6 @@ spec:
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
-                                            enum:
-                                            - In
-                                            - NotIn
-                                            - Exists
-                                            - DoesNotExist
                                             type: string
                                           values:
                                             description: values is an array of string
@@ -3939,10 +3487,6 @@ spec:
                                       type: array
                                     matchLabels:
                                       additionalProperties:
-                                        description: MatchLabelsValue represents the
-                                          value from the MatchLabels {key,value} pair.
-                                        maxLength: 63
-                                        pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                         type: string
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
@@ -3980,11 +3524,6 @@ spec:
                             description: operator represents a key's relationship
                               to a set of values. Valid operators are In, NotIn, Exists
                               and DoesNotExist.
-                            enum:
-                            - In
-                            - NotIn
-                            - Exists
-                            - DoesNotExist
                             type: string
                           values:
                             description: values is an array of string values. If the
@@ -4002,10 +3541,6 @@ spec:
                       type: array
                     matchLabels:
                       additionalProperties:
-                        description: MatchLabelsValue represents the value from the
-                          MatchLabels {key,value} pair.
-                        maxLength: 63
-                        pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                         type: string
                       description: matchLabels is a map of {key,value} pairs. A single
                         {key,value} in the matchLabels map is equivalent to an element
@@ -4021,15 +3556,15 @@ spec:
                     description: "IngressRule contains all rule types which can be
                       applied at ingress, i.e. network traffic that originates outside
                       of the endpoint and is entering the endpoint selected by the
-                      endpointSelector. \n   - All members of this structure are optional.
-                      If omitted or empty, the     member will have no effect on the
-                      rule. \n   - If multiple members are set, all of them need to
-                      match in order for     the rule to take effect. The exception
-                      to this rule is FromRequires field;     the effects of any Requires
-                      field in any rule will apply to all other     rules as well.
-                      \n   - FromEndpoints, FromCIDR, FromCIDRSet and FromEntities
-                      are mutually     exclusive. Only one of these members may be
-                      present within an individual     rule."
+                      endpointSelector. \n - All members of this structure are optional.
+                      If omitted or empty, the member will have no effect on the rule.
+                      \n - If multiple members are set, all of them need to match
+                      in order for the rule to take effect. The exception to this
+                      rule is FromRequires field; the effects of any Requires field
+                      in any rule will apply to all other rules as well. \n - FromEndpoints,
+                      FromCIDR, FromCIDRSet and FromEntities are mutually exclusive.
+                      Only one of these members may be present within an individual
+                      rule."
                     properties:
                       auth:
                         description: Auth is the required authentication type for
@@ -4038,10 +3573,6 @@ spec:
                           type:
                             description: Type is the required authentication type
                               for the allowed traffic, if any.
-                            enum:
-                            - "null"
-                            - mtls-spiffe
-                            - always-fail
                             type: string
                         required:
                         - type
@@ -4061,7 +3592,6 @@ spec:
                         items:
                           description: 'CIDR specifies a block of IP addresses. Example:
                             192.0.2.1/32'
-                          pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                           type: string
                         type: array
                       fromCIDRSet:
@@ -4081,27 +3611,15 @@ spec:
                             to/from which outside communication  is allowed, along
                             with an optional list of subnets within that CIDR prefix
                             to/from which outside communication is not allowed.
-                          oneOf:
-                          - properties:
-                              cidr: {}
-                            required:
-                            - cidr
-                          - properties:
-                              cidrGroupRef: {}
-                            required:
-                            - cidrGroupRef
                           properties:
                             cidr:
                               description: CIDR is a CIDR prefix / IP Block.
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             cidrGroupRef:
                               description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                                 object. A CiliumCIDRGroup contains a list of CIDRs
                                 that the endpoint, subject to the rule, can (Ingress)
                                 or cannot (IngressDeny) receive connections from.
-                              maxLength: 253
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             except:
                               description: ExceptCIDRs is a list of IP blocks which
@@ -4115,9 +3633,10 @@ spec:
                               items:
                                 description: 'CIDR specifies a block of IP addresses.
                                   Example: 192.0.2.1/32'
-                                pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                                 type: string
                               type: array
+                          required:
+                          - cidr
                           type: object
                         type: array
                       fromEndpoints:
@@ -4145,11 +3664,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -4168,10 +3682,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -4189,18 +3699,6 @@ spec:
                           description: Entity specifies the class of receiver/sender
                             endpoints that do not have individual identities.  Entities
                             are used to describe "outside of cluster", "host", etc.
-                          enum:
-                          - all
-                          - world
-                          - cluster
-                          - host
-                          - init
-                          - ingress
-                          - unmanaged
-                          - remote-node
-                          - health
-                          - none
-                          - kube-apiserver
                           type: string
                         type: array
                       fromRequires:
@@ -4230,11 +3728,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -4253,10 +3746,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -4281,19 +3770,13 @@ spec:
                                 description: ICMPField is a ICMP field.
                                 properties:
                                   family:
-                                    default: IPv4
                                     description: Family is a IP address version. Currently,
                                       we support `IPv4` and `IPv6`. `IPv4` is set
                                       as default.
-                                    enum:
-                                    - IPv4
-                                    - IPv6
                                     type: string
                                   type:
                                     description: Type is a ICMP-type. It should be
                                       0-255 (8bit).
-                                    maximum: 255
-                                    minimum: 0
                                     type: integer
                                 required:
                                 - type
@@ -4330,22 +3813,18 @@ spec:
                                         from CiliumNetworkPolicy, as using a namespaced
                                         listener from a cluster scoped policy is not
                                         allowed.
-                                      enum:
-                                      - CiliumEnvoyConfig
-                                      - CiliumClusterwideEnvoyConfig
                                       type: string
                                     name:
                                       description: Name is the resource name of the
                                         CiliumEnvoyConfig or CiliumClusterwideEnvoyConfig
                                         where the listener is defined in.
-                                      minLength: 1
                                       type: string
                                   required:
+                                  - kind
                                   - name
                                   type: object
                                 name:
                                   description: Name is the name of the listener.
-                                  minLength: 1
                                   type: string
                               required:
                               - envoyConfig
@@ -4377,11 +3856,11 @@ spec:
                                   description: 'Secret is the secret that contains
                                     the certificates and private key for the TLS context.
                                     By default, Cilium will search in this secret
-                                    for the following items:  - ''ca.crt''  - Which
-                                    represents the trusted CA to verify remote source.  -
-                                    ''tls.crt'' - Which represents the public key
-                                    certificate.  - ''tls.key'' - Which represents
-                                    the private key matching the public key                certificate.'
+                                    for the following items: - ''ca.crt''  - Which
+                                    represents the trusted CA to verify remote source.
+                                    - ''tls.crt'' - Which represents the public key
+                                    certificate. - ''tls.key'' - Which represents
+                                    the private key matching the public key certificate.'
                                   properties:
                                     name:
                                       description: Name is the name of the secret.
@@ -4418,7 +3897,6 @@ spec:
                                       one [a-z], and may also contain [0-9] and '-'
                                       anywhere except adjacent to another '-' or in
                                       the beginning or the end.
-                                    pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                     type: string
                                   protocol:
                                     description: "Protocol is the L4 protocol. If
@@ -4427,11 +3905,6 @@ spec:
                                       \n Matching on ICMP is not supported. \n Named
                                       port specified for a container may narrow this
                                       down, but may not contradict this."
-                                    enum:
-                                    - TCP
-                                    - UDP
-                                    - SCTP
-                                    - ANY
                                     type: string
                                 required:
                                 - port
@@ -4453,7 +3926,6 @@ spec:
                                         description: MatchName matches literal DNS
                                           names. A trailing "." is automatically added
                                           when missing.
-                                        pattern: ^([-a-zA-Z0-9_]+[.]?)+$
                                         type: string
                                       matchPattern:
                                         description: "MatchPattern allows using wildcards
@@ -4466,19 +3938,18 @@ spec:
                                           as well as the name to the right. A trailing
                                           \".\" is automatically added when missing.
                                           \n Examples: `*.cilium.io` matches subomains
-                                          of cilium at that level   www.cilium.io
-                                          and blog.cilium.io match, cilium.io and
-                                          google.com do not `*cilium.io` matches cilium.io
-                                          and all subdomains ends with \"cilium.io\"
-                                          \  except those containing \".\" separator,
-                                          subcilium.io and sub-cilium.io match,   www.cilium.io
-                                          and blog.cilium.io does not sub*.cilium.io
-                                          matches subdomains of cilium where the subdomain
-                                          component begins with \"sub\"   sub.cilium.io
+                                          of cilium at that level www.cilium.io and
+                                          blog.cilium.io match, cilium.io and google.com
+                                          do not `*cilium.io` matches cilium.io and
+                                          all subdomains ends with \"cilium.io\" except
+                                          those containing \".\" separator, subcilium.io
+                                          and sub-cilium.io match, www.cilium.io and
+                                          blog.cilium.io does not sub*.cilium.io matches
+                                          subdomains of cilium where the subdomain
+                                          component begins with \"sub\" sub.cilium.io
                                           and subdomain.cilium.io match, www.cilium.io,
-                                          \  blog.cilium.io, cilium.io and google.com
+                                          blog.cilium.io, cilium.io and google.com
                                           do not"
-                                        pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
                                         type: string
                                     type: object
                                   type: array
@@ -4518,11 +3989,6 @@ spec:
                                                 the overall rule is still considered
                                                 as matching, but the mismatches are
                                                 logged in the access log.
-                                              enum:
-                                              - LOG
-                                              - ADD
-                                              - DELETE
-                                              - REPLACE
                                               type: string
                                             name:
                                               description: Name identifies the header.
@@ -4573,7 +4039,6 @@ spec:
                                           matched against the host header of a request,
                                           e.g. \"foo.com\" \n If omitted or empty,
                                           the value of the host header is ignored."
-                                        format: idn-hostname
                                         type: string
                                       method:
                                         description: "Method is an extended POSIX
@@ -4638,9 +4103,9 @@ spec:
                                           such as \"produce\" or \"consume\". A Role
                                           automatically expands into all APIKeys required
                                           to perform the specified higher-level operation.
-                                          \n The following values are supported:  -
+                                          \n The following values are supported: -
                                           \"produce\": Allow producing to the topics
-                                          specified in the rule  - \"consume\": Allow
+                                          specified in the rule - \"consume\": Allow
                                           consuming from the topics specified in the
                                           rule \n This field is incompatible with
                                           the APIKey field, i.e APIKey and Role cannot
@@ -4723,11 +4188,11 @@ spec:
                                   description: 'Secret is the secret that contains
                                     the certificates and private key for the TLS context.
                                     By default, Cilium will search in this secret
-                                    for the following items:  - ''ca.crt''  - Which
-                                    represents the trusted CA to verify remote source.  -
-                                    ''tls.crt'' - Which represents the public key
-                                    certificate.  - ''tls.key'' - Which represents
-                                    the private key matching the public key                certificate.'
+                                    for the following items: - ''ca.crt''  - Which
+                                    represents the trusted CA to verify remote source.
+                                    - ''tls.crt'' - Which represents the public key
+                                    certificate. - ''tls.key'' - Which represents
+                                    the private key matching the public key certificate.'
                                   properties:
                                     name:
                                       description: Name is the name of the secret.
@@ -4762,15 +4227,15 @@ spec:
                     description: "IngressDenyRule contains all rule types which can
                       be applied at ingress, i.e. network traffic that originates
                       outside of the endpoint and is entering the endpoint selected
-                      by the endpointSelector. \n   - All members of this structure
-                      are optional. If omitted or empty, the     member will have
-                      no effect on the rule. \n   - If multiple members are set, all
-                      of them need to match in order for     the rule to take effect.
-                      The exception to this rule is FromRequires field;     the effects
-                      of any Requires field in any rule will apply to all other     rules
-                      as well. \n   - FromEndpoints, FromCIDR, FromCIDRSet and FromEntities
-                      are mutually     exclusive. Only one of these members may be
-                      present within an individual     rule."
+                      by the endpointSelector. \n - All members of this structure
+                      are optional. If omitted or empty, the member will have no effect
+                      on the rule. \n - If multiple members are set, all of them need
+                      to match in order for the rule to take effect. The exception
+                      to this rule is FromRequires field; the effects of any Requires
+                      field in any rule will apply to all other rules as well. \n
+                      - FromEndpoints, FromCIDR, FromCIDRSet and FromEntities are
+                      mutually exclusive. Only one of these members may be present
+                      within an individual rule."
                     properties:
                       fromCIDR:
                         description: "FromCIDR is a list of IP blocks which the endpoint
@@ -4787,7 +4252,6 @@ spec:
                         items:
                           description: 'CIDR specifies a block of IP addresses. Example:
                             192.0.2.1/32'
-                          pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                           type: string
                         type: array
                       fromCIDRSet:
@@ -4807,27 +4271,15 @@ spec:
                             to/from which outside communication  is allowed, along
                             with an optional list of subnets within that CIDR prefix
                             to/from which outside communication is not allowed.
-                          oneOf:
-                          - properties:
-                              cidr: {}
-                            required:
-                            - cidr
-                          - properties:
-                              cidrGroupRef: {}
-                            required:
-                            - cidrGroupRef
                           properties:
                             cidr:
                               description: CIDR is a CIDR prefix / IP Block.
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                               type: string
                             cidrGroupRef:
                               description: CIDRGroupRef is a reference to a CiliumCIDRGroup
                                 object. A CiliumCIDRGroup contains a list of CIDRs
                                 that the endpoint, subject to the rule, can (Ingress)
                                 or cannot (IngressDeny) receive connections from.
-                              maxLength: 253
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             except:
                               description: ExceptCIDRs is a list of IP blocks which
@@ -4841,9 +4293,10 @@ spec:
                               items:
                                 description: 'CIDR specifies a block of IP addresses.
                                   Example: 192.0.2.1/32'
-                                pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$|^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$
                                 type: string
                               type: array
+                          required:
+                          - cidr
                           type: object
                         type: array
                       fromEndpoints:
@@ -4871,11 +4324,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -4894,10 +4342,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -4915,18 +4359,6 @@ spec:
                           description: Entity specifies the class of receiver/sender
                             endpoints that do not have individual identities.  Entities
                             are used to describe "outside of cluster", "host", etc.
-                          enum:
-                          - all
-                          - world
-                          - cluster
-                          - host
-                          - init
-                          - ingress
-                          - unmanaged
-                          - remote-node
-                          - health
-                          - none
-                          - kube-apiserver
                           type: string
                         type: array
                       fromRequires:
@@ -4956,11 +4388,6 @@ spec:
                                     description: operator represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
-                                    enum:
-                                    - In
-                                    - NotIn
-                                    - Exists
-                                    - DoesNotExist
                                     type: string
                                   values:
                                     description: values is an array of string values.
@@ -4979,10 +4406,6 @@ spec:
                               type: array
                             matchLabels:
                               additionalProperties:
-                                description: MatchLabelsValue represents the value
-                                  from the MatchLabels {key,value} pair.
-                                maxLength: 63
-                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                                 type: string
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
@@ -5007,19 +4430,13 @@ spec:
                                 description: ICMPField is a ICMP field.
                                 properties:
                                   family:
-                                    default: IPv4
                                     description: Family is a IP address version. Currently,
                                       we support `IPv4` and `IPv6`. `IPv4` is set
                                       as default.
-                                    enum:
-                                    - IPv4
-                                    - IPv6
                                     type: string
                                   type:
                                     description: Type is a ICMP-type. It should be
                                       0-255 (8bit).
-                                    maximum: 255
-                                    minimum: 0
                                     type: integer
                                 required:
                                 - type
@@ -5053,7 +4470,6 @@ spec:
                                       one [a-z], and may also contain [0-9] and '-'
                                       anywhere except adjacent to another '-' or in
                                       the beginning or the end.
-                                    pattern: ^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})|([a-zA-Z0-9]-?)*[a-zA-Z](-?[a-zA-Z0-9])*$
                                     type: string
                                   protocol:
                                     description: "Protocol is the L4 protocol. If
@@ -5062,11 +4478,6 @@ spec:
                                       \n Matching on ICMP is not supported. \n Named
                                       port specified for a container may narrow this
                                       down, but may not contradict this."
-                                    enum:
-                                    - TCP
-                                    - UDP
-                                    - SCTP
-                                    - ANY
                                     type: string
                                 required:
                                 - port
@@ -5119,11 +4530,6 @@ spec:
                             description: operator represents a key's relationship
                               to a set of values. Valid operators are In, NotIn, Exists
                               and DoesNotExist.
-                            enum:
-                            - In
-                            - NotIn
-                            - Exists
-                            - DoesNotExist
                             type: string
                           values:
                             description: values is an array of string values. If the
@@ -5141,10 +4547,6 @@ spec:
                       type: array
                     matchLabels:
                       additionalProperties:
-                        description: MatchLabelsValue represents the value from the
-                          MatchLabels {key,value} pair.
-                        maxLength: 63
-                        pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                         type: string
                       description: matchLabels is a map of {key,value} pairs. A single
                         {key,value} in the matchLabels map is equivalent to an element
@@ -5186,8 +4588,7 @@ spec:
                     lastUpdated:
                       description: LastUpdated contains the last time this status
                         was updated
-                      format: date-time
-                      type: string
+                      type: object
                     localPolicyRevision:
                       description: Revision is the policy revision of the repository
                         which first implemented this policy.
@@ -5230,8 +4631,7 @@ spec:
                     lastUpdated:
                       description: LastUpdated contains the last time this status
                         was updated
-                      format: date-time
-                      type: string
+                      type: object
                     localPolicyRevision:
                       description: Revision is the policy revision of the repository
                         which first implemented this policy.
@@ -5253,9 +4653,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
