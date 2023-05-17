@@ -203,7 +203,7 @@ CRDS_CILIUM_V2ALPHA1 := ciliumendpointslices \
                         ciliumcidrgroups
 manifests: ## Generate K8s manifests e.g. CRD, RBAC etc.
 	$(eval TMPDIR := $(shell mktemp -d -t cilium.tmpXXXXXXXX))
-	$(QUIET)$(GO) run sigs.k8s.io/controller-tools/cmd/controller-gen $(CRD_OPTIONS) paths=$(CRD_PATHS) output:crd:artifacts:config="$(TMPDIR)"
+	/home/rasto/go/src/github.com/cilium/controller-tools/cmd/controller-gen/controller-gen $(CRD_OPTIONS) paths=$(CRD_PATHS) output:crd:artifacts:config="$(TMPDIR)"
 	$(QUIET)$(GO) run ./tools/crdcheck "$(TMPDIR)"
 
 	# Clean up old CRD state and start with a blank state.
