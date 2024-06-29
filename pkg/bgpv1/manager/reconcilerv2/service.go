@@ -641,20 +641,21 @@ func (r *ServiceReconciler) getServicePrefixes(svc *slim_corev1.Service, advert 
 		return nil, fmt.Errorf("unexpected advertisement type: %s", advert.AdvertisementType)
 	}
 
-	if advert.Selector == nil || advert.Service == nil {
-		// advertisement has no selector or no service options, default behavior is not to match any service.
+	if advert.Service == nil {
+		// advertisement has no service options, default behavior is not to match any service.
 		return nil, nil
 	}
 
-	// The vRouter has a service selector, so determine the desired routes.
-	svcSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
-	if err != nil {
-		return nil, fmt.Errorf("labelSelectorAsSelector: %w", err)
-	}
-
-	// Ignore non matching services.
-	if !svcSelector.Matches(serviceLabelSet(svc)) {
-		return nil, nil
+	if advert.Selector != nil {
+		// The vRouter has a service selector, so determine the desired routes.
+		svcSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert label selector: %w", err)
+		}
+		// Ignore non matching services.
+		if !svcSelector.Matches(serviceLabelSet(svc)) {
+			return nil, nil
+		}
 	}
 
 	var desiredRoutes []netip.Prefix
@@ -789,14 +790,16 @@ func (r *ServiceReconciler) getLBRoutePolicy(p ReconcileParams, peer string, fam
 		return nil, nil
 	}
 
-	labelSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
-	if err != nil {
-		return nil, fmt.Errorf("failed constructing LabelSelector: %w", err)
-	}
+	if advert.Selector != nil {
+		labelSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed constructing LabelSelector: %w", err)
+		}
 
-	// check if advertisement matches lb pool labels
-	if !labelSelector.Matches(labels.Set(lbPool.Labels)) {
-		return nil, nil
+		// check if advertisement matches lb pool labels
+		if !labelSelector.Matches(labels.Set(lbPool.Labels)) {
+			return nil, nil
+		}
 	}
 
 	var v4Prefixes, v6Prefixes types.PolicyPrefixMatchList
@@ -869,13 +872,15 @@ func (r *ServiceReconciler) getExternalIPRoutePolicy(p ReconcileParams, peer str
 		return nil, nil
 	}
 
-	labelSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
-	if err != nil {
-		return nil, fmt.Errorf("failed constructing LabelSelector: %w", err)
-	}
+	if advert.Selector != nil {
+		labelSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed constructing LabelSelector: %w", err)
+		}
 
-	if !labelSelector.Matches(serviceLabelSet(svc)) {
-		return nil, nil
+		if !labelSelector.Matches(serviceLabelSet(svc)) {
+			return nil, nil
+		}
 	}
 
 	// Ignore externalTrafficPolicy == Local && no local EPs.
@@ -954,13 +959,15 @@ func (r *ServiceReconciler) getClusterIPRoutePolicy(p ReconcileParams, peer stri
 		return nil, nil
 	}
 
-	labelSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
-	if err != nil {
-		return nil, fmt.Errorf("failed constructing LabelSelector: %w", err)
-	}
+	if advert.Selector != nil {
+		labelSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed constructing LabelSelector: %w", err)
+		}
 
-	if !labelSelector.Matches(serviceLabelSet(svc)) {
-		return nil, nil
+		if !labelSelector.Matches(serviceLabelSet(svc)) {
+			return nil, nil
+		}
 	}
 
 	// Ignore internalTrafficPolicy == Local && no local EPs.
@@ -1013,11 +1020,6 @@ func (r *ServiceReconciler) getClusterIPRoutePolicy(p ReconcileParams, peer stri
 func checkServiceAdvertisement(advert v2alpha1.BGPAdvertisement, advertServiceType v2alpha1.BGPServiceAddressType) (bool, error) {
 	if advert.Service == nil {
 		return false, fmt.Errorf("BUG: advertisement has no service options")
-	}
-
-	// If selector is nil, we do not use this advertisement.
-	if advert.Selector == nil {
-		return false, nil
 	}
 
 	// check service type is enabled in advertisement

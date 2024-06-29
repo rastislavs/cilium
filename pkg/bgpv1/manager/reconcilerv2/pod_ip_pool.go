@@ -314,15 +314,17 @@ func (r *PodIPPoolReconciler) getDesiredAFPaths(pool *v2alpha1.CiliumPodIPPool, 
 					continue
 				}
 
-				// check if the pool selector matches the advertisement
-				poolSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
-				if err != nil {
-					return nil, fmt.Errorf("failed to convert label selector: %w", err)
-				}
+				if advert.Selector != nil {
+					// check if the pool selector matches the advertisement
+					poolSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
+					if err != nil {
+						return nil, fmt.Errorf("failed to convert label selector: %w", err)
+					}
 
-				// Ignore non matching pool.
-				if !poolSelector.Matches(podIPPoolLabelSet(pool)) {
-					continue
+					// Ignore non matching pool.
+					if !poolSelector.Matches(podIPPoolLabelSet(pool)) {
+						continue
+					}
 				}
 
 				if prefixes, exists := lp[pool.Name]; exists {
@@ -355,15 +357,17 @@ func (r *PodIPPoolReconciler) getPodIPPoolPolicy(p ReconcileParams, peer string,
 		return nil, fmt.Errorf("failed to get peer address: %w", err)
 	}
 
-	// check if the pool selector matches the advertisement
-	poolSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert label selector: %w", err)
-	}
+	if advert.Selector != nil {
+		// check if the pool selector matches the advertisement
+		poolSelector, err := slim_metav1.LabelSelectorAsSelector(advert.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert label selector: %w", err)
+		}
 
-	// Ignore non matching pool.
-	if !poolSelector.Matches(podIPPoolLabelSet(pool)) {
-		return nil, nil
+		// Ignore non matching pool.
+		if !poolSelector.Matches(podIPPoolLabelSet(pool)) {
+			return nil, nil
+		}
 	}
 
 	// only include pool cidrs that have been allocated to the local node.

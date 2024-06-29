@@ -409,17 +409,15 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 			name: "dual stack, pool NOT selected by advertisement, pool present on the node",
 			peerConfig: []*v2alpha1.CiliumBGPPeerConfig{
 				redPeerConfig,
-				bluePeerConfig,
 			},
 			advertisements: []*v2alpha1.CiliumBGPAdvertisement{
-				redAdvert,  // no selector matching red pool
-				blueAdvert, // no selector matching blue pool
+				redAdvert, // no selector matching red pool
 			},
 			pools: []*v2alpha1.CiliumPodIPPool{
 				redPool,
-				bluePool,
 			},
 			preconfiguredPoolAFPaths: map[resource.Key]map[types.Family]map[string]struct{}{},
+			preconfiguredRPs:         ResourceRoutePolicyMap{},
 			testCiliumNode: &v2api.CiliumNode{
 				ObjectMeta: metaV1.ObjectMeta{
 					Name: "Test Node",
@@ -456,8 +454,24 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 				LocalASN: ptr.To[int64](65001),
 				Peers:    []v2alpha1.CiliumBGPNodePeer{redPeer65001, bluePeer65001},
 			},
-			expectedPoolAFPaths: map[resource.Key]map[types.Family]map[string]struct{}{},
-			expectedRPs:         nil,
+			expectedPoolAFPaths: map[resource.Key]map[types.Family]map[string]struct{}{
+				{Name: redPoolName, Namespace: redPoolNamespace}: {
+					{Afi: types.AfiIPv4, Safi: types.SafiUnicast}: {
+						string(redPoolNodePrefix1v4): struct{}{},
+						string(redPoolNodePrefix2v4): struct{}{},
+					},
+					{Afi: types.AfiIPv6, Safi: types.SafiUnicast}: {
+						string(redPoolNodePrefix1v6): struct{}{},
+						string(redPoolNodePrefix2v6): struct{}{},
+					},
+				},
+			},
+			expectedRPs: ResourceRoutePolicyMap{
+				resource.Key{Name: redPoolName, Namespace: redPoolNamespace}: RoutePolicyMap{
+					redPeer65001v4PodIPPoolRPName: redPeer65001v4PodIPPoolRP,
+					redPeer65001v6PodIPPoolRPName: redPeer65001v6PodIPPoolRP,
+				},
+			},
 		},
 		{
 			name: "dual stack, pool selected by advertisement, pool NOT present on the node",
