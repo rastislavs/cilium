@@ -1,0 +1,126 @@
+# Start the hive
+hive start
+
+# Add dummy link and IPs
+exec ip link add dummy1 type dummy
+exec ip link set dummy1 up
+exec ip addr add 10.0.1.100/32 dev dummy1
+exec ip addr add 10.0.1.101/32 dev dummy1
+
+# Configure gobgp
+gobgp peer add 10.0.1.101 asn 65001
+
+# Configure BGP on Cilium
+k8s add cilium-node.yaml
+k8s add bgp-node-config.yaml bgp-peer-config.yaml bgp-advertisement.yaml
+
+# Validate peering state
+gobgp peers peers.actual
+* cmp gobgp-peers.expected peers.actual
+
+# Validate PodCIDR routes
+gobgp routes routes.actual
+* cmp gobgp-routes-podcidr.expected routes.actual
+
+# Add a k8s service
+k8s add service.yaml
+
+# Validate PodCIDR + Service routes
+gobgp routes routes.actual
+* cmp gobgp-routes-all.expected routes.actual
+
+#####
+
+-- cilium-node.yaml --
+apiVersion: cilium.io/v2
+kind: CiliumNode
+metadata:
+  name: test-node
+spec:
+  addresses:
+  - ip: 10.0.1.101
+    type: InternalIP
+  - ip: 10.0.1.101
+    type: CiliumInternalIP
+  ipam:
+    podCIDRs:
+    - 10.244.0.0/24
+
+-- bgp-node-config.yaml --
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPNodeConfig
+metadata:
+  name: test-node
+spec:
+  bgpInstances:
+  - localASN: 65001
+    name: tor
+    peers:
+    - name: gobgp-peer
+      peerASN: 65000
+      peerAddress: 10.0.1.100
+      localAddress: 10.0.1.101
+      peerConfigRef:
+        name: gobgp-peer-config
+
+-- bgp-peer-config.yaml --
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPPeerConfig
+metadata:
+  name: gobgp-peer-config
+spec:
+  ebgpMultihop: 1
+  families:
+  - advertisements:
+      matchLabels:
+        advertise: bgp
+    afi: ipv4
+    safi: unicast
+
+-- bgp-advertisement.yaml --
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPAdvertisement
+metadata:
+  labels:
+    advertise: bgp
+  name: bgp-advertisements
+spec:
+  advertisements:
+  - advertisementType: PodCIDR
+  - advertisementType: Service
+    service:
+      addresses:
+        - ClusterIP
+    selector:
+      matchExpressions:
+        - { key: bgp, operator: NotIn, values: [ nonExistingValue ] }
+
+-- service.yaml --
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo
+  namespace: test
+spec:
+  clusterIP: 10.96.50.104
+  clusterIPs:
+  - 10.96.50.104
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    name: echo
+  type: ClusterIP
+
+-- gobgp-peers.expected --
+PeerAddress   PeerASN   SessionState
+10.0.1.101    65001     ESTABLISHED
+-- gobgp-routes-podcidr.expected --
+Prefix          NextHop      Attrs
+10.244.0.0/24   10.0.1.101   [{Origin: i} {AsPath: 65001} {Nexthop: 10.0.1.101}]
+-- gobgp-routes-all.expected --
+Prefix            NextHop      Attrs
+10.244.0.0/24     10.0.1.101   [{Origin: i} {AsPath: 65001} {Nexthop: 10.0.1.101}]
+10.96.50.104/32   10.0.1.101   [{Origin: i} {AsPath: 65001} {Nexthop: 10.0.1.101}]
