@@ -5,6 +5,7 @@ package agent
 
 import (
 	"context"
+	"github.com/cilium/hive/cell"
 
 	"github.com/cilium/cilium/api/v1/models"
 	restapi "github.com/cilium/cilium/api/v1/server/restapi/bgp"
@@ -53,5 +54,7 @@ type BGPRouterManager interface {
 	GetRoutePolicies(ctx context.Context, params restapi.GetBgpRoutePoliciesParams) ([]*models.BgpRoutePolicy, error)
 
 	// Stop will stop all BGP instances and clean up local state.
-	Stop()
+	Stop(ctx cell.HookContext) error
+
+	Start(ctx cell.HookContext) error
 }
