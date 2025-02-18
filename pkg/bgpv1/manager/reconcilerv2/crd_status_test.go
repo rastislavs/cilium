@@ -26,7 +26,6 @@ import (
 	"github.com/cilium/cilium/pkg/bgpv1/manager/tables"
 	"github.com/cilium/cilium/pkg/hive"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
-	"github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2alpha1"
 	k8s_client "github.com/cilium/cilium/pkg/k8s/client"
 	cilium_client_v2alpha1 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2alpha1"
 	"github.com/cilium/cilium/pkg/option"
@@ -366,17 +365,17 @@ func TestDisableStatusReport(t *testing.T) {
 			require.NoError(t, err)
 
 			// Create a NodeConfig for this node
-			_, err = cs.CiliumV2alpha1().CiliumBGPNodeConfigs().Create(
+			_, err = cs.CiliumV2().CiliumBGPNodeConfigs().Create(
 				ctx,
-				&v2alpha1.CiliumBGPNodeConfig{
+				&v2.CiliumBGPNodeConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "node0",
 					},
 					// Spec can be empty for this test
-					Spec: v2alpha1.CiliumBGPNodeSpec{},
+					Spec: v2.CiliumBGPNodeSpec{},
 					// Fill with some dummy status
-					Status: v2alpha1.CiliumBGPNodeStatus{
-						BGPInstances: []v2alpha1.CiliumBGPNodeInstanceStatus{
+					Status: v2.CiliumBGPNodeStatus{
+						BGPInstances: []v2.CiliumBGPNodeInstanceStatus{
 							{
 								Name: "foo",
 							},
@@ -389,9 +388,9 @@ func TestDisableStatusReport(t *testing.T) {
 			require.NoError(t, err)
 
 			// Ensure the status is not empty at this point
-			nc, err := cs.CiliumV2alpha1().CiliumBGPNodeConfigs().Get(ctx, "node0", metav1.GetOptions{})
+			nc, err := cs.CiliumV2().CiliumBGPNodeConfigs().Get(ctx, "node0", metav1.GetOptions{})
 			require.NoError(t, err)
-			require.False(t, nc.Status.DeepEqual(&v2alpha1.CiliumBGPNodeStatus{}), "Status is already empty before cleanup job")
+			require.False(t, nc.Status.DeepEqual(&v2.CiliumBGPNodeStatus{}), "Status is already empty before cleanup job")
 
 			// Register cleanup job. This should cleanup the status of the NodeConfig above.
 			r := &StatusReconciler{
@@ -409,11 +408,11 @@ func TestDisableStatusReport(t *testing.T) {
 
 	// Wait for status to be cleared
 	require.EventuallyWithT(t, func(ct *assert.CollectT) {
-		nc, err := cs.CiliumV2alpha1().CiliumBGPNodeConfigs().Get(ctx, "node0", metav1.GetOptions{})
+		nc, err := cs.CiliumV2().CiliumBGPNodeConfigs().Get(ctx, "node0", metav1.GetOptions{})
 		if !assert.NoError(ct, err) {
 			return
 		}
 		// The status should be cleared to empty
-		assert.True(ct, nc.Status.DeepEqual(&v2alpha1.CiliumBGPNodeStatus{}), "Status is not empty")
+		assert.True(ct, nc.Status.DeepEqual(&v2.CiliumBGPNodeStatus{}), "Status is not empty")
 	}, time.Second*5, time.Millisecond*100)
 }
