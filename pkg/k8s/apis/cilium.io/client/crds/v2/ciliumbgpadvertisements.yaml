@@ -223,13 +223,13 @@ spec:
                           type: array
                         aggregationLengthIPv4:
                           description: IPv4 mask to aggregate BGP route advertisements
-                            of service
+                            of service.
                           maximum: 31
                           minimum: 0
                           type: integer
                         aggregationLengthIPv6:
                           description: IPv6 mask to aggregate BGP route advertisements
-                            of service
+                            of service.
                           maximum: 127
                           minimum: 0
                           type: integer
@@ -239,6 +239,9 @@ spec:
                   required:
                   - advertisementType
                   type: object
+                  x-kubernetes-validations:
+                  - message: service filed is required for Service advertisementType
+                    rule: self.advertisementType != 'Service' || has(self.service)
                 type: array
             required:
             - advertisements
