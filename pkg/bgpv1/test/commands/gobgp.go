@@ -237,6 +237,17 @@ func GoBGPWaitStateCmd(cmdCtx *GoBGPCmdContext) script.Cmd {
 			if err != nil {
 				return nil, err
 			}
+			// check if the peer isn't already in the expected state
+			done := false
+			err = gobgpServer.ListPeer(s.Context(), &gobgpapi.ListPeerRequest{Address: args[0]}, func(p *gobgpapi.Peer) {
+				if p.State.SessionState == gobgpapi.PeerState_SessionState(gobgpapi.PeerState_SessionState_value[args[1]]) {
+					done = true
+				}
+			})
+			if done {
+				return nil, nil
+			}
+			// wait for the expected state
 			select {
 			case <-s.Context().Done():
 				return nil, s.Context().Err()
