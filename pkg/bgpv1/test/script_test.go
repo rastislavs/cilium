@@ -37,12 +37,14 @@ import (
 
 const (
 	testTimeout  = 60 * time.Second
+	testLogLevel = slog.LevelInfo
+
 	testLinkName = "cilium-bgp-test"
 )
 
 func TestScript(t *testing.T) {
 	testutils.PrivilegedTest(t)
-	slog.SetLogLoggerLevel(slog.LevelInfo)
+	slog.SetLogLoggerLevel(testLogLevel)
 
 	// setup test link
 	dummy := &netlink.Dummy{
@@ -59,6 +61,12 @@ func TestScript(t *testing.T) {
 		var err error
 		var bgpMgr agent.BGPRouterManager
 
+		// parse the shebang arguments in the script
+		flags := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
+		peeringIPs := flags.StringSlice("test-peering-ips", nil, "List of IPs used for peering in the test")
+		ipam := flags.String("ipam", ipamOption.IPAMKubernetes, "IPAM used by the test")
+		require.NoError(t, flags.Parse(args), "Error parsing test flags")
+
 		h := ciliumhive.New(
 			client.FakeClientCell,
 			daemonk8s.ResourcesCell,
@@ -71,7 +79,7 @@ func TestScript(t *testing.T) {
 					EnableBGPControlPlane:     true,
 					BGPSecretsNamespace:       "bgp-secrets",
 					BGPRouterIDAllocationMode: defaults.BGPRouterIDAllocationMode,
-					IPAM:                      ipamOption.IPAMKubernetes,
+					IPAM:                      *ipam,
 				}
 				return option.Config
 			}),
@@ -84,15 +92,10 @@ func TestScript(t *testing.T) {
 			}),
 		)
 
-		hiveLog := hivetest.Logger(t, hivetest.LogLevel(slog.LevelInfo))
+		hiveLog := hivetest.Logger(t, hivetest.LogLevel(testLogLevel))
 		t.Cleanup(func() {
 			assert.NoError(t, h.Stop(hiveLog, context.TODO()))
 		})
-
-		// parse the shebang arguments in the script.
-		flags := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
-		peeringIPs := flags.StringSlice("test-peering-ips", nil, "List of IPs used for peering in the test")
-		require.NoError(t, flags.Parse(args), "Error parsing test flags")
 
 		// setup test peering IPs
 		l, err := netlink.LinkByName(testLinkName)
