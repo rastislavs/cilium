@@ -29,6 +29,12 @@ import (
 	"github.com/cilium/cilium/pkg/bgpv1/test/commands"
 	"github.com/cilium/cilium/pkg/datapath/linux/safenetlink"
 	"github.com/cilium/cilium/pkg/datapath/tables"
+	"github.com/cilium/cilium/pkg/kpr"
+	"github.com/cilium/cilium/pkg/loadbalancer"
+	lbcell "github.com/cilium/cilium/pkg/loadbalancer/cell"
+	"github.com/cilium/cilium/pkg/maglev"
+	"github.com/cilium/cilium/pkg/node"
+	"github.com/cilium/cilium/pkg/source"
 
 	ciliumhive "github.com/cilium/cilium/pkg/hive"
 	ipamOption "github.com/cilium/cilium/pkg/ipam/option"
@@ -87,54 +93,57 @@ func TestScript(t *testing.T) {
 			}
 		}
 
-		// Create the route and device tables
-		routeTable, err := tables.NewRouteTable()
-		require.NoError(t, err)
-
-		deviceTable, err := tables.NewDeviceTable()
-		require.NoError(t, err)
-
-		// Create a cell that registers the tables with the StateDB
-		registerTablesCell := cell.Module(
-			"register-tables",
-			"Registers the route and device tables with the StateDB",
-			cell.Invoke(func(db *statedb.DB) {
-				err := db.RegisterTable(routeTable)
-				require.NoError(t, err)
-
-				err = db.RegisterTable(deviceTable)
-				require.NoError(t, err)
-			}),
-		)
 		h := ciliumhive.New(
-			k8sClient.FakeClientCell(),
-			daemonk8s.ResourcesCell,
-			metrics.Cell,
+			// BGP cell
 			bgpv1.Cell,
 
-			// Register the tables with the StateDB
-			registerTablesCell,
+			// Dependencies
+			k8sClient.FakeClientCell(),
+			daemonk8s.ResourcesCell,
+			daemonk8s.TablesCell,
+			node.LocalNodeStoreCell,
+			metrics.Cell,
+			lbcell.Cell,
+			maglev.Cell,
+			cell.Provide(source.NewSources),
+			cell.Config(loadbalancer.TestConfig{}),
+			cell.Provide(
+				func(cfg loadbalancer.TestConfig) *loadbalancer.TestConfig { return &cfg }, // newLBMaps expects *TestConfig
+			),
 
-			// Provide the route table
-			cell.Provide(func() statedb.Table[*tables.Route] {
-				return routeTable.ToTable()
-			}),
+			// Provide and register StateDB tables
+			cell.Provide(
+				tables.NewRouteTable,
+				tables.NewDeviceTable,
+				tables.NewNodeAddressTable,
 
-			// Provide the device table
-			cell.Provide(func() statedb.Table[*tables.Device] {
-				return deviceTable.ToTable()
-			}),
+				statedb.RWTable[*tables.Route].ToTable,
+				statedb.RWTable[*tables.Device].ToTable,
+				statedb.RWTable[tables.NodeAddress].ToTable,
+			),
+			cell.Invoke(statedb.RegisterTable[*tables.Route]),
+			cell.Invoke(statedb.RegisterTable[*tables.Device]),
+			cell.Invoke(statedb.RegisterTable[tables.NodeAddress]),
 
-			cell.Provide(func() *option.DaemonConfig {
-				// BGP Manager uses the global variable option.Config so we need to set it there as well
-				option.Config = &option.DaemonConfig{
-					EnableBGPControlPlane:     true,
-					BGPSecretsNamespace:       testSecretsNamespace,
-					BGPRouterIDAllocationMode: option.BGPRouterIDAllocationModeDefault,
-					IPAM:                      *ipam,
-				}
-				return option.Config
-			}),
+			cell.Provide(
+				func() *option.DaemonConfig {
+					option.Config = &option.DaemonConfig{
+						EnableBGPControlPlane:     true,
+						BGPSecretsNamespace:       testSecretsNamespace,
+						BGPRouterIDAllocationMode: option.BGPRouterIDAllocationModeDefault,
+						IPAM:                      *ipam,
+						EnableIPv4:                true,
+						EnableIPv6:                true,
+					}
+					return option.Config
+				},
+				func() kpr.KPRConfig {
+					return kpr.KPRConfig{
+						KubeProxyReplacement: "true",
+						EnableNodePort:       true,
+					}
+				},
+			),
 
 			cell.Invoke(func() {
 				types.SetName(testNodeName)
@@ -145,7 +154,7 @@ func TestScript(t *testing.T) {
 			}),
 		)
 
-		hiveLog := hivetest.Logger(t, hivetest.LogLevel(slog.LevelInfo))
+		hiveLog := hivetest.Logger(t, hivetest.LogLevel(slog.LevelDebug))
 		t.Cleanup(func() {
 			assert.NoError(t, h.Stop(hiveLog, context.TODO()))
 		})

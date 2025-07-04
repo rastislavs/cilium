@@ -1002,8 +1002,6 @@ func Test_ServiceLBReconciler(t *testing.T) {
 						PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](tt.peerConfig),
 						AdvertStore:     store.InitMockStore[*v2.CiliumBGPAdvertisement](tt.advertisements),
 					}),
-				SvcDiffStore: store.InitFakeDiffStore[*slim_corev1.Service](tt.services),
-				EPDiffStore:  store.InitFakeDiffStore[*k8s.Endpoints](tt.endpoints),
 			}
 
 			svcReconciler := NewServiceReconciler(params).Reconciler.(*ServiceReconciler)
@@ -1375,8 +1373,6 @@ func Test_ServiceExternalIPReconciler(t *testing.T) {
 						PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](tt.peerConfig),
 						AdvertStore:     store.InitMockStore[*v2.CiliumBGPAdvertisement](tt.advertisements),
 					}),
-				SvcDiffStore: store.InitFakeDiffStore[*slim_corev1.Service](tt.services),
-				EPDiffStore:  store.InitFakeDiffStore[*k8s.Endpoints](tt.endpoints),
 			}
 
 			svcReconciler := NewServiceReconciler(params).Reconciler.(*ServiceReconciler)
@@ -1748,8 +1744,6 @@ func Test_ServiceClusterIPReconciler(t *testing.T) {
 						PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](tt.peerConfig),
 						AdvertStore:     store.InitMockStore[*v2.CiliumBGPAdvertisement](tt.advertisements),
 					}),
-				SvcDiffStore: store.InitFakeDiffStore[*slim_corev1.Service](tt.services),
-				EPDiffStore:  store.InitFakeDiffStore[*k8s.Endpoints](tt.endpoints),
 			}
 
 			svcReconciler := NewServiceReconciler(params).Reconciler.(*ServiceReconciler)
@@ -2149,8 +2143,6 @@ func Test_ServiceAndAdvertisementModifications(t *testing.T) {
 				PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](peerConfigs),
 				AdvertStore:     advertStore,
 			}),
-		SvcDiffStore: serviceStore,
-		EPDiffStore:  epStore,
 	}
 
 	svcReconciler := NewServiceReconciler(params).Reconciler.(*ServiceReconciler)
@@ -2527,8 +2519,6 @@ func Test_ServiceVIPSharing(t *testing.T) {
 				PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](peerConfigs),
 				AdvertStore:     advertStore,
 			}),
-		SvcDiffStore: serviceStore,
-		EPDiffStore:  epStore,
 	}
 
 	svcReconciler := NewServiceReconciler(params).Reconciler.(*ServiceReconciler)
@@ -2828,8 +2818,6 @@ func Test_ServiceAdvertisementWithPeerIPChange(t *testing.T) {
 				PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](peerConfigs),
 				AdvertStore:     advertStore,
 			}),
-		SvcDiffStore: serviceStore,
-		EPDiffStore:  epStore,
 	}
 
 	svcReconciler := NewServiceReconciler(params).Reconciler.(*ServiceReconciler)
