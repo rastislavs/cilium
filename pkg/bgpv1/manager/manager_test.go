@@ -16,7 +16,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	restapi "github.com/cilium/cilium/api/v1/server/restapi/bgp"
-	"github.com/cilium/cilium/pkg/bgpv1/agent/mode"
 	"github.com/cilium/cilium/pkg/bgpv1/manager/instance"
 	"github.com/cilium/cilium/pkg/bgpv1/manager/reconcilerv2"
 	"github.com/cilium/cilium/pkg/bgpv1/manager/tables"
@@ -487,7 +486,7 @@ func TestStatedbReconcileErrors(t *testing.T) {
 
 			// call reconcile for each instance
 			for _, inst := range tt.instances {
-				err = m.reconcileBGPConfigV2(
+				err = m.reconcileBGPConfig(
 					context.Background(),
 					inst,
 					&v2.CiliumBGPNodeInstance{
