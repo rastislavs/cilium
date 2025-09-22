@@ -216,7 +216,7 @@ status.
 Logs
 ====
 
-BGP Control Plane logs can be found in the Cilium operator (only for BGPv2) and the Cilium agent logs.
+BGP Control Plane logs can be found in the Cilium operator and the Cilium agent logs.
 
 The operator logs are tagged with ``subsys=bgp-cp-operator``. You can use this tag to filter
 the logs as in the following example:
@@ -282,7 +282,7 @@ below to avoid packet loss as much as possible.
       kubectl drain <node-name> --ignore-daemonsets
 
 2. Reconfigure the BGP sessions by modifying or removing the
-   CiliumBGPPeeringPolicy or CiliumBGPClusterConfig node selector label on the Node object.
+   CiliumBGPClusterConfig node selector label on the Node object.
    This will shut down all BGP sessions on the node.
 
    .. code-block:: bash
@@ -470,7 +470,7 @@ Control Plane behaves differently depending on the Service's
 
 When the ``externalTrafficPolicy`` is set to ``Cluster``, then the
 Service's VIP remains advertised from all nodes selected by the
-``CiliumBGPPeeringPolicy`` or ``CiliumBGPClusterConfig`` **only** when
+`CiliumBGPClusterConfig`` **only** when
 ``--enable-no-service-endpoints-routable`` is true (the default). If the flag is
 set to ``false`` then Service's VIP is withdrawn.
 
