@@ -43,7 +43,6 @@ const (
 const (
 	awsNodeDaemonSetFileName                 = "aws-node-daemonset-<ts>.yaml"
 	ciliumBugtoolFileName                    = "cilium-bugtool-%s-<ts>.tar.gz"
-	ciliumBPGPeeringPoliciesFileName         = "ciliumbgppeeringpolicies-<ts>.yaml"
 	ciliumClusterWideNetworkPoliciesFileName = "ciliumclusterwidenetworkpolicies-<ts>.yaml"
 	ciliumClusterwideEnvoyConfigsFileName    = "ciliumclusterwideenvoyconfigs-<ts>.yaml"
 	ciliumConfigMapFileName                  = "cilium-configmap-<ts>.yaml"

@@ -2174,21 +2174,6 @@ func (c *Collector) getEnvoyConfigTasks() []Task {
 
 func (c *Collector) getBGPControlPlaneTasks() []Task {
 	return []Task{
-		// BGPv1 resource
-		{
-			Description: "Collecting Cilium BGP Peering Policies",
-			Quick:       true,
-			Task: func(ctx context.Context) error {
-				v, err := c.Client.ListCiliumBGPPeeringPolicies(ctx, metav1.ListOptions{})
-				if err != nil {
-					return fmt.Errorf("failed to collect Cilium BGP Peering policies: %w", err)
-				}
-				if err := c.WriteYAML(ciliumBPGPeeringPoliciesFileName, v); err != nil {
-					return fmt.Errorf("failed to collect Cilium BGP Peering policies: %w", err)
-				}
-				return nil
-			},
-		},
 		// BGPv2 resources - can be either v2 or v2alpha1 version
 		collectCiliumV2OrV2Alpha1Resource(c, "ciliumbgpclusterconfigs", "Cilium BGP Cluster Configs"),
 		collectCiliumV2OrV2Alpha1Resource(c, "ciliumbgppeerconfigs", "Cilium BGP Peer Configs"),
