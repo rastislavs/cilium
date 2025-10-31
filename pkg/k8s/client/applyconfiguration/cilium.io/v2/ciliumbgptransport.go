@@ -8,7 +8,8 @@ package v2
 // CiliumBGPTransportApplyConfiguration represents a declarative configuration of the CiliumBGPTransport type for use
 // with apply.
 type CiliumBGPTransportApplyConfiguration struct {
-	PeerPort *int32 `json:"peerPort,omitempty"`
+	PeerPort        *int32  `json:"peerPort,omitempty"`
+	SourceInterface *string `json:"sourceInterface,omitempty"`
 }
 
 // CiliumBGPTransportApplyConfiguration constructs a declarative configuration of the CiliumBGPTransport type for use with
@@ -22,5 +23,13 @@ func CiliumBGPTransport() *CiliumBGPTransportApplyConfiguration {
 // If called multiple times, the PeerPort field is set to the value of the last call.
 func (b *CiliumBGPTransportApplyConfiguration) WithPeerPort(value int32) *CiliumBGPTransportApplyConfiguration {
 	b.PeerPort = &value
+	return b
+}
+
+// WithSourceInterface sets the SourceInterface field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SourceInterface field is set to the value of the last call.
+func (b *CiliumBGPTransportApplyConfiguration) WithSourceInterface(value string) *CiliumBGPTransportApplyConfiguration {
+	b.SourceInterface = &value
 	return b
 }
