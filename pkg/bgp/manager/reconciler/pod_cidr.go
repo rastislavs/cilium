@@ -10,10 +10,13 @@ import (
 	"net/netip"
 
 	"github.com/cilium/hive/cell"
+	"github.com/cilium/statedb"
 
 	"github.com/cilium/cilium/pkg/bgp/manager/instance"
+	bgptables "github.com/cilium/cilium/pkg/bgp/manager/tables"
 	"github.com/cilium/cilium/pkg/bgp/types"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/resource"
 	"github.com/cilium/cilium/pkg/option"
 )
 
@@ -29,18 +32,22 @@ type PodCIDRReconcilerIn struct {
 	Logger       *slog.Logger
 	PeerAdvert   *CiliumPeerAdvertisement
 	DaemonConfig *option.DaemonConfig
+
+	DB               *statedb.DB
+	RoutePolicyTable statedb.RWTable[*bgptables.BGPDesiredPolicy]
 }
 
 type PodCIDRReconciler struct {
 	logger     *slog.Logger
 	peerAdvert *CiliumPeerAdvertisement
+	db         *statedb.DB
+	policyTbl  statedb.RWTable[*bgptables.BGPDesiredPolicy]
 	metadata   map[string]PodCIDRReconcilerMetadata
 }
 
 // PodCIDRReconcilerMetadata is a map of advertisements per family, key is family type
 type PodCIDRReconcilerMetadata struct {
-	AFPaths       AFPathsMap
-	RoutePolicies RoutePolicyMap
+	AFPaths AFPathsMap
 }
 
 func NewPodCIDRReconciler(params PodCIDRReconcilerIn) PodCIDRReconcilerOut {
@@ -53,6 +60,8 @@ func NewPodCIDRReconciler(params PodCIDRReconcilerIn) PodCIDRReconcilerOut {
 		Reconciler: &PodCIDRReconciler{
 			logger:     params.Logger.With(types.ReconcilerLogField, "PodCIDR"),
 			peerAdvert: params.PeerAdvert,
+			db:         params.DB,
+			policyTbl:  params.RoutePolicyTable,
 			metadata:   make(map[string]PodCIDRReconcilerMetadata),
 		},
 	}
@@ -71,8 +80,7 @@ func (r *PodCIDRReconciler) Init(i *instance.BGPInstance) error {
 		return fmt.Errorf("BUG: %s reconciler initialization with nil BGPInstance", r.Name())
 	}
 	r.metadata[i.Name] = PodCIDRReconcilerMetadata{
-		AFPaths:       make(AFPathsMap),
-		RoutePolicies: make(RoutePolicyMap),
+		AFPaths: make(AFPathsMap),
 	}
 	return nil
 }
@@ -80,6 +88,9 @@ func (r *PodCIDRReconciler) Init(i *instance.BGPInstance) error {
 func (r *PodCIDRReconciler) Cleanup(i *instance.BGPInstance) {
 	if i != nil {
 		delete(r.metadata, i.Name)
+		if err := deleteDesiredRoutePoliciesBySource(r.db, r.policyTbl, i.Name, r.Name()); err != nil {
+			r.logger.Warn("Failed deleting desired PodCIDR route policies", types.InstanceLogField, i.Name, "error", err)
+		}
 	}
 }
 
@@ -104,7 +115,7 @@ func (r *PodCIDRReconciler) Reconcile(ctx context.Context, p ReconcileParams) er
 		return err
 	}
 
-	err = r.reconcileRoutePolicies(ctx, p, desiredPeerAdverts, podCIDRPrefixes)
+	err = r.reconcileDesiredRoutePolicyStatements(ctx, p, desiredPeerAdverts, podCIDRPrefixes)
 	if err != nil {
 		return err
 	}
@@ -132,26 +143,23 @@ func (r *PodCIDRReconciler) reconcilePaths(ctx context.Context, p ReconcileParam
 	return err
 }
 
-func (r *PodCIDRReconciler) reconcileRoutePolicies(ctx context.Context, p ReconcileParams, desiredPeerAdverts PeerAdvertisements, podPrefixes []netip.Prefix) error {
-	metadata := r.getMetadata(p.BGPInstance)
-
-	// get desired policies
-	desiredRoutePolicies, err := r.getDesiredRoutePolicies(desiredPeerAdverts, podPrefixes)
+func (r *PodCIDRReconciler) reconcileDesiredRoutePolicyStatements(_ context.Context, p ReconcileParams, desiredPeerAdverts PeerAdvertisements, podPrefixes []netip.Prefix) error {
+	// get desired policy statements
+	desiredRoutePolicyStatements, err := r.getDesiredRoutePolicyStatements(desiredPeerAdverts, podPrefixes)
 	if err != nil {
 		return err
 	}
 
-	// reconcile route policies
-	updatedPolicies, err := ReconcileRoutePolicies(&ReconcileRoutePoliciesParams{
-		Logger:          r.logger.With(types.InstanceLogField, p.DesiredConfig.Name),
-		Ctx:             ctx,
-		Router:          p.BGPInstance.Router,
-		DesiredPolicies: desiredRoutePolicies,
-		CurrentPolicies: r.getMetadata(p.BGPInstance).RoutePolicies,
-	})
-
-	metadata.RoutePolicies = updatedPolicies
-	r.setMetadata(p.BGPInstance, metadata)
+	err = reconcileDesiredRoutePolicyStatementsByPeer(
+		r.db,
+		r.policyTbl,
+		p.BGPInstance.Name,
+		r.Name(),
+		routePolicyPriorityPodCIDR,
+		resource.Key{},
+		types.RoutePolicyTypeExport,
+		desiredRoutePolicyStatements,
+	)
 	return err
 }
 
@@ -191,8 +199,8 @@ func (r *PodCIDRReconciler) getDesiredPathsPerFamily(desiredPeerAdverts PeerAdve
 	return desiredFamilyAdverts
 }
 
-func (r *PodCIDRReconciler) getDesiredRoutePolicies(desiredPeerAdverts PeerAdvertisements, desiredPrefixes []netip.Prefix) (RoutePolicyMap, error) {
-	desiredPolicies := make(RoutePolicyMap)
+func (r *PodCIDRReconciler) getDesiredRoutePolicyStatements(desiredPeerAdverts PeerAdvertisements, desiredPrefixes []netip.Prefix) (PeerRoutePolicyStatementMap, error) {
+	desiredStatements := make(PeerRoutePolicyStatementMap)
 
 	for peer, afAdverts := range desiredPeerAdverts {
 		if peer.Address == "" {
@@ -221,18 +229,25 @@ func (r *PodCIDRReconciler) getDesiredRoutePolicies(desiredPeerAdverts PeerAdver
 				}
 
 				if len(v6Prefixes) > 0 || len(v4Prefixes) > 0 {
-					name := PolicyName(peer.Name, fam.Afi.String(), advert.AdvertisementType, "")
-					policy, err := CreatePolicy(name, peerAddr, v4Prefixes, v6Prefixes, advert)
+					name := PolicyStatementName(peer.Name, fam.Afi.String(), advert.AdvertisementType, "")
+					statements, err := CreatePolicyStatements(name, peerAddr, v4Prefixes, v6Prefixes, advert)
 					if err != nil {
 						return nil, err
 					}
-					desiredPolicies[name] = policy
+					peerStatements := desiredStatements[peer.Name]
+					if peerStatements == nil {
+						peerStatements = make(RoutePolicyStatementMap)
+						desiredStatements[peer.Name] = peerStatements
+					}
+					for statementName, statement := range statements {
+						peerStatements[statementName] = statement
+					}
 				}
 			}
 		}
 	}
 
-	return desiredPolicies, nil
+	return desiredStatements, nil
 }
 
 func (r *PodCIDRReconciler) getMetadata(i *instance.BGPInstance) PodCIDRReconcilerMetadata {

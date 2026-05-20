@@ -9,12 +9,14 @@ import (
 	"testing"
 
 	"github.com/cilium/hive/hivetest"
+	"github.com/cilium/statedb"
 	"github.com/stretchr/testify/require"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	"github.com/cilium/cilium/pkg/bgp/manager/instance"
 	"github.com/cilium/cilium/pkg/bgp/manager/store"
+	bgptables "github.com/cilium/cilium/pkg/bgp/manager/tables"
 	"github.com/cilium/cilium/pkg/bgp/types"
 	ipamtypes "github.com/cilium/cilium/pkg/ipam/types"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
@@ -238,11 +240,11 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 		advertisements           []*v2.CiliumBGPAdvertisement
 		pools                    []*v2alpha1.CiliumPodIPPool
 		preconfiguredPoolAFPaths map[resource.Key]map[types.Family]map[string]struct{}
-		preconfiguredRPs         ResourceRoutePolicyMap
+		preconfiguredRPs         routePolicyFixtureMap
 		testCiliumNode           *v2.CiliumNode
 		testBGPInstanceConfig    *v2.CiliumBGPNodeInstance
 		expectedPoolAFPaths      map[resource.Key]map[types.Family]map[string]struct{}
-		expectedRPs              ResourceRoutePolicyMap
+		expectedRPs              routePolicyFixtureMap
 	}{
 		{
 			name: "dual stack, advertisement selects pools (by label), pool present on the node",
@@ -259,7 +261,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 				bluePool,
 			},
 			preconfiguredPoolAFPaths: map[resource.Key]map[types.Family]map[string]struct{}{},
-			preconfiguredRPs:         ResourceRoutePolicyMap{},
+			preconfiguredRPs:         routePolicyFixtureMap{},
 			testCiliumNode: &v2.CiliumNode{
 				ObjectMeta: metaV1.ObjectMeta{
 					Name: "Test Node",
@@ -319,7 +321,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 					},
 				},
 			},
-			expectedRPs: ResourceRoutePolicyMap{
+			expectedRPs: routePolicyFixtureMap{
 				resource.Key{Name: redPoolName}: RoutePolicyMap{
 					redPeer65001v4PodIPPoolRPName: redPeer65001v4PodIPPoolRP,
 					redPeer65001v6PodIPPoolRPName: redPeer65001v6PodIPPoolRP,
@@ -345,7 +347,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 				bluePool,
 			},
 			preconfiguredPoolAFPaths: map[resource.Key]map[types.Family]map[string]struct{}{},
-			preconfiguredRPs:         ResourceRoutePolicyMap{},
+			preconfiguredRPs:         routePolicyFixtureMap{},
 			testCiliumNode: &v2.CiliumNode{
 				ObjectMeta: metaV1.ObjectMeta{
 					Name: "Test Node",
@@ -405,7 +407,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 					},
 				},
 			},
-			expectedRPs: ResourceRoutePolicyMap{
+			expectedRPs: routePolicyFixtureMap{
 				resource.Key{Name: redPoolName}: RoutePolicyMap{
 					redPeer65001v4PodIPPoolRPName: redPeer65001v4PodIPPoolRP,
 					redPeer65001v6PodIPPoolRPName: redPeer65001v6PodIPPoolRP,
@@ -539,7 +541,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 					},
 				},
 			},
-			preconfiguredRPs: ResourceRoutePolicyMap{
+			preconfiguredRPs: routePolicyFixtureMap{
 				resource.Key{Name: redPoolName}: RoutePolicyMap{
 					redPeer65001v4PodIPPoolRPName: redPeer65001v4PodIPPoolRP,
 					redPeer65001v6PodIPPoolRPName: redPeer65001v6PodIPPoolRP,
@@ -589,7 +591,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 					},
 				},
 			},
-			expectedRPs: ResourceRoutePolicyMap{
+			expectedRPs: routePolicyFixtureMap{
 				resource.Key{Name: redPoolName}: RoutePolicyMap{
 					redPeer65001v4PodIPPoolRPName: redPeer65001v4PodIPPoolRP,
 					redPeer65001v6PodIPPoolRPName: redPeer65001v6PodIPPoolRP,
@@ -601,6 +603,9 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := require.New(t)
+			db := statedb.New()
+			routePolicyTable, err := bgptables.NewBGPDesiredPolicyTable(db)
+			req.NoError(err)
 
 			params := PodIPPoolReconcilerIn{
 				Logger: hivetest.Logger(t),
@@ -610,7 +615,9 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 						PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](tt.peerConfig),
 						AdvertStore:     store.InitMockStore[*v2.CiliumBGPAdvertisement](tt.advertisements),
 					}),
-				PoolStore: store.InitMockStore[*v2alpha1.CiliumPodIPPool](tt.pools),
+				PoolStore:        store.InitMockStore[*v2alpha1.CiliumPodIPPool](tt.pools),
+				DB:               db,
+				RoutePolicyTable: routePolicyTable,
 			}
 			podIPPoolReconciler := NewPodIPPoolReconciler(params).Reconciler.(*PodIPPoolReconciler)
 
@@ -631,9 +638,11 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 				}
 			}
 			podIPPoolReconciler.setMetadata(testBGPInstance, PodIPPoolReconcilerMetadata{
-				PoolAFPaths:       presetPoolAFPaths,
-				PoolRoutePolicies: tt.preconfiguredRPs,
+				PoolAFPaths: presetPoolAFPaths,
 			})
+			if len(tt.preconfiguredRPs) > 0 {
+				seedDesiredRoutePolicyFixtures(req, podIPPoolReconciler.db, podIPPoolReconciler.policyTbl, testBGPInstance.Name, podIPPoolReconciler.Name(), routePolicyPriorityPodIPPool, tt.preconfiguredRPs)
+			}
 
 			// run podIPPoolReconciler twice to ensure idempotency
 			for range 2 {
@@ -659,7 +668,7 @@ func Test_PodIPPoolAdvertisements(t *testing.T) {
 			}
 
 			req.Equal(tt.expectedPoolAFPaths, runningPoolAFPaths)
-			req.Equal(tt.expectedRPs, podIPPoolReconciler.getMetadata(testBGPInstance).PoolRoutePolicies)
+			req.Equal(tt.expectedRPs, routePolicyFixtureMapFromTable(podIPPoolReconciler.db, podIPPoolReconciler.policyTbl, testBGPInstance.Name, podIPPoolReconciler.Name()))
 		})
 	}
 }

@@ -18,9 +18,11 @@ import (
 
 	"github.com/cilium/cilium/pkg/bgp/manager/instance"
 	"github.com/cilium/cilium/pkg/bgp/manager/store"
+	bgptables "github.com/cilium/cilium/pkg/bgp/manager/tables"
 	"github.com/cilium/cilium/pkg/bgp/types"
 	"github.com/cilium/cilium/pkg/datapath/tables"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/resource"
 )
 
 func Test_InterfaceAdvertisement(t *testing.T) {
@@ -412,6 +414,8 @@ func Test_InterfaceAdvertisement(t *testing.T) {
 	db := statedb.New()
 	deviceTable, err := tables.NewDeviceTable(db)
 	req.NoError(err)
+	routePolicyTable, err := bgptables.NewBGPDesiredPolicyTable(db)
+	req.NoError(err)
 
 	// initialize reconciler
 	peerConfigStore := store.NewMockBGPCPResourceStore[*v2.CiliumBGPPeerConfig]()
@@ -425,8 +429,9 @@ func Test_InterfaceAdvertisement(t *testing.T) {
 				AdvertStore:     advertStore,
 			},
 		),
-		DB:          db,
-		DeviceTable: deviceTable,
+		DB:               db,
+		DeviceTable:      deviceTable,
+		RoutePolicyTable: routePolicyTable,
 	}
 	interfaceReconciler := NewInterfaceReconciler(p).Reconciler.(*InterfaceReconciler)
 	testBGPInstance := instance.NewFakeBGPInstance()
@@ -474,8 +479,8 @@ func Test_InterfaceAdvertisement(t *testing.T) {
 			}
 			req.Equal(tt.expectedPaths, runningFamilyPaths)
 
-			// check if the route policies are as expected
-			runningRPs := interfaceReconciler.getMetadata(testBGPInstance).RoutePolicies
+			// check if the desired route policies are as expected
+			runningRPs := routePolicyMapFromTable(interfaceReconciler.db, interfaceReconciler.policyTbl, testBGPInstance.Name, interfaceReconciler.Name(), resource.Key{})
 			req.Equal(tt.expectedRPs, runningRPs)
 		})
 	}

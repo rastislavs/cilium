@@ -27,11 +27,18 @@ const (
 	MaxPrefixLenIPv6 = 128
 )
 
-// ResourceRoutePolicyMap holds the route policies per resource.
-type ResourceRoutePolicyMap map[resource.Key]RoutePolicyMap
-
 // RoutePolicyMap holds routing policies configured by the policy reconciler keyed by policy name.
 type RoutePolicyMap map[string]*types.RoutePolicy
+
+// ResourceRoutePolicyStatementMap holds route policy statements per resource.
+type ResourceRoutePolicyStatementMap map[resource.Key]PeerRoutePolicyStatementMap
+
+// PeerRoutePolicyStatementMap holds route policy statements per peer. The empty
+// peer name represents router-global statements.
+type PeerRoutePolicyStatementMap map[string]RoutePolicyStatementMap
+
+// RoutePolicyStatementMap holds route policy statements keyed by statement name.
+type RoutePolicyStatementMap map[string]*types.RoutePolicyStatement
 
 type ReconcileRoutePoliciesParams struct {
 	Logger          *slog.Logger
@@ -73,6 +80,8 @@ func ReconcileRoutePolicies(rp *ReconcileRoutePoliciesParams) (RoutePolicyMap, e
 	maps.Copy(runningPolicies, rp.CurrentPolicies)
 
 	var toAdd, toRemove, toUpdate []*types.RoutePolicy
+	desiredPolicyOrder := orderedRoutePolicyNames(rp.DesiredPolicies)
+	currentPolicyOrder := orderedRoutePolicyNames(rp.CurrentPolicies)
 
 	// Tracks which peers have to be reset which direction because of policy change
 	resetPeers := map[netip.Addr]*resetDirections{}
@@ -94,7 +103,7 @@ func ReconcileRoutePolicies(rp *ReconcileRoutePoliciesParams) (RoutePolicyMap, e
 		}
 	}
 
-	for _, desired := range rp.DesiredPolicies {
+	for _, desired := range orderedRoutePolicies(rp.DesiredPolicies, desiredPolicyOrder) {
 		if current, found := rp.CurrentPolicies[desired.Name]; found {
 			if !current.DeepEqual(desired) {
 				toUpdate = append(toUpdate, desired)
@@ -111,11 +120,25 @@ func ReconcileRoutePolicies(rp *ReconcileRoutePoliciesParams) (RoutePolicyMap, e
 			upsertResetPeers(desired)
 		}
 	}
-	for _, current := range rp.CurrentPolicies {
+	for _, current := range orderedRoutePolicies(rp.CurrentPolicies, currentPolicyOrder) {
 		if _, found := rp.DesiredPolicies[current.Name]; !found {
 			toRemove = append(toRemove, current)
 			upsertResetPeers(current)
 		}
+	}
+
+	// remove old policies
+	for _, p := range toRemove {
+		rp.Logger.Debug(
+			"Removing route policy",
+			types.PolicyLogField, p.Name,
+		)
+
+		err := rp.Router.RemoveRoutePolicy(rp.Ctx, types.RoutePolicyRequest{Policy: p})
+		if err != nil {
+			return runningPolicies, err
+		}
+		delete(runningPolicies, p.Name)
 	}
 
 	// add missing policies
@@ -132,7 +155,6 @@ func ReconcileRoutePolicies(rp *ReconcileRoutePoliciesParams) (RoutePolicyMap, e
 		if err != nil {
 			return runningPolicies, err
 		}
-
 		runningPolicies[p.Name] = p
 	}
 
@@ -161,20 +183,6 @@ func ReconcileRoutePolicies(rp *ReconcileRoutePoliciesParams) (RoutePolicyMap, e
 		}
 
 		runningPolicies[p.Name] = p
-	}
-
-	// remove old policies
-	for _, p := range toRemove {
-		rp.Logger.Debug(
-			"Removing route policy",
-			types.PolicyLogField, p.Name,
-		)
-
-		err := rp.Router.RemoveRoutePolicy(rp.Ctx, types.RoutePolicyRequest{Policy: p})
-		if err != nil {
-			return runningPolicies, err
-		}
-		delete(runningPolicies, p.Name)
 	}
 
 	// If we have all reset, process it first
@@ -236,13 +244,54 @@ func ReconcileRoutePolicies(rp *ReconcileRoutePoliciesParams) (RoutePolicyMap, e
 	return runningPolicies, nil
 }
 
+func orderedRoutePolicyNames(policies RoutePolicyMap) []string {
+	names := make([]string, 0, len(policies))
+	for name := range policies {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func orderedRoutePolicies(policies RoutePolicyMap, order []string) []*types.RoutePolicy {
+	res := make([]*types.RoutePolicy, 0, len(policies))
+	for _, name := range order {
+		res = append(res, policies[name])
+	}
+	return res
+}
+
+func orderedRoutePolicyStatements(statements RoutePolicyStatementMap) []*types.RoutePolicyStatement {
+	names := make([]string, 0, len(statements))
+	for name := range statements {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	res := make([]*types.RoutePolicyStatement, 0, len(names))
+	for _, name := range names {
+		res = append(res, statements[name])
+	}
+	return res
+}
+
 // PolicyName returns a unique route policy name for the provided peer, family and advertisement type.
 // If there a is a need for multiple route policies per advertisement type, unique resourceID can be provided.
 func PolicyName(peer, family string, advertType v2.BGPAdvertisementType, resourceID string) string {
+	return PolicyStatementName(peer, family, advertType, resourceID)
+}
+
+// PolicyStatementName returns a unique route policy statement name for the provided peer, family and advertisement type.
+// If there a is a need for multiple route policy statements per advertisement type, unique resourceID can be provided.
+func PolicyStatementName(peer, family string, advertType v2.BGPAdvertisementType, resourceID string) string {
 	if resourceID == "" {
 		return fmt.Sprintf("%s-%s-%s", peer, family, advertType)
 	}
 	return fmt.Sprintf("%s-%s-%s-%s", peer, family, advertType, resourceID)
+}
+
+func policyStatementName(policyName string, index int) string {
+	return fmt.Sprintf("%s-%d", policyName, index)
 }
 
 func CreatePolicy(name string, peerAddr netip.Addr, v4Prefixes, v6Prefixes types.PolicyPrefixList, advert v2.BGPAdvertisement) (*types.RoutePolicy, error) {
@@ -250,7 +299,21 @@ func CreatePolicy(name string, peerAddr netip.Addr, v4Prefixes, v6Prefixes types
 		Name: name,
 		Type: types.RoutePolicyTypeExport,
 	}
+	statements, err := createPolicyStatements(name, peerAddr, v4Prefixes, v6Prefixes, advert, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, stmt := range orderedRoutePolicyStatements(statements) {
+		policy.Statements = append(policy.Statements, stmt)
+	}
+	return policy, nil
+}
 
+func CreatePolicyStatements(name string, peerAddr netip.Addr, v4Prefixes, v6Prefixes types.PolicyPrefixList, advert v2.BGPAdvertisement) (RoutePolicyStatementMap, error) {
+	return createPolicyStatements(name, peerAddr, v4Prefixes, v6Prefixes, advert, true)
+}
+
+func createPolicyStatements(name string, peerAddr netip.Addr, v4Prefixes, v6Prefixes types.PolicyPrefixList, advert v2.BGPAdvertisement, setStatementName bool) (RoutePolicyStatementMap, error) {
 	// sort prefixes to have consistent order for DeepEqual
 	sort.Slice(v4Prefixes, v4Prefixes.Less)
 	sort.Slice(v6Prefixes, v6Prefixes.Less)
@@ -267,16 +330,33 @@ func CreatePolicy(name string, peerAddr netip.Addr, v4Prefixes, v6Prefixes types
 		localPref = advert.Attributes.LocalPreference
 	}
 
+	statements := make(RoutePolicyStatementMap)
+	statementName := func(suffix string) string {
+		if len(v4Prefixes) > 0 && len(v6Prefixes) > 0 {
+			return name + "-" + suffix
+		}
+		return name
+	}
 	// Due to a GoBGP limitation, we need to generate a separate statement for v4 and v6 prefixes, as families
 	// can not be mixed in a single statement. Nevertheless, they can be both part of the same Policy.
 	if len(v4Prefixes) > 0 {
-		policy.Statements = append(policy.Statements, policyStatement(peerAddr, v4Prefixes, localPref, communities, largeCommunities))
+		name := statementName("ipv4")
+		statement := policyStatement(peerAddr, v4Prefixes, localPref, communities, largeCommunities)
+		if setStatementName {
+			statement.Name = name
+		}
+		statements[name] = statement
 	}
 	if len(v6Prefixes) > 0 {
-		policy.Statements = append(policy.Statements, policyStatement(peerAddr, v6Prefixes, localPref, communities, largeCommunities))
+		name := statementName("ipv6")
+		statement := policyStatement(peerAddr, v6Prefixes, localPref, communities, largeCommunities)
+		if setStatementName {
+			statement.Name = name
+		}
+		statements[name] = statement
 	}
 
-	return policy, nil
+	return statements, nil
 }
 
 // MergeRoutePolicies evaluates two instances of RoutePolicy{} and returns a single RoutePolicy{} representing
@@ -350,6 +430,33 @@ func MergeRoutePolicies(policyA *types.RoutePolicy, policyB *types.RoutePolicy) 
 	return mergedPolicy, nil
 }
 
+func MergeRoutePolicyStatements(name string, statementA, statementB *types.RoutePolicyStatement) (*types.RoutePolicyStatement, error) {
+	if statementA == nil || statementB == nil {
+		return nil, fmt.Errorf("route policy statement is nil")
+	}
+
+	mergedPolicy, err := MergeRoutePolicies(
+		&types.RoutePolicy{
+			Name:       name,
+			Type:       types.RoutePolicyTypeExport,
+			Statements: []*types.RoutePolicyStatement{statementA},
+		},
+		&types.RoutePolicy{
+			Name:       name,
+			Type:       types.RoutePolicyTypeExport,
+			Statements: []*types.RoutePolicyStatement{statementB},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(mergedPolicy.Statements) != 1 {
+		return nil, fmt.Errorf("route policy statements %q have different match conditions", name)
+	}
+	mergedPolicy.Statements[0].Name = name
+	return mergedPolicy.Statements[0], nil
+}
+
 func mergePolicy(
 	policy *types.RoutePolicy,
 	inputPolicyStatements map[string]*types.RoutePolicyStatement,
@@ -364,6 +471,7 @@ func mergePolicy(
 		key := statement.Conditions.String()
 		if _, found := outputPolicyStatements[key]; !found {
 			outputPolicyStatements[key] = &types.RoutePolicyStatement{
+				Name:       statement.Name,
 				Actions:    statement.Actions,
 				Conditions: statement.Conditions,
 			}

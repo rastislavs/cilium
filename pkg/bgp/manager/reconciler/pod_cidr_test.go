@@ -10,15 +10,18 @@ import (
 	"testing"
 
 	"github.com/cilium/hive/hivetest"
+	"github.com/cilium/statedb"
 	"github.com/stretchr/testify/require"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	"github.com/cilium/cilium/pkg/bgp/manager/instance"
 	"github.com/cilium/cilium/pkg/bgp/manager/store"
+	bgptables "github.com/cilium/cilium/pkg/bgp/manager/tables"
 	"github.com/cilium/cilium/pkg/bgp/types"
 	ipamtypes "github.com/cilium/cilium/pkg/ipam/types"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/resource"
 	"github.com/cilium/cilium/pkg/option"
 )
 
@@ -438,6 +441,9 @@ func Test_PodCIDRAdvertisement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := require.New(t)
+			db := statedb.New()
+			routePolicyTable, err := bgptables.NewBGPDesiredPolicyTable(db)
+			req.NoError(err)
 
 			// initialize pod cidr reconciler
 			p := PodCIDRReconcilerIn{
@@ -448,7 +454,9 @@ func Test_PodCIDRAdvertisement(t *testing.T) {
 						PeerConfigStore: store.InitMockStore[*v2.CiliumBGPPeerConfig](tt.peerConfig),
 						AdvertStore:     store.InitMockStore[*v2.CiliumBGPAdvertisement](tt.advertisements),
 					}),
-				DaemonConfig: &option.DaemonConfig{IPAM: "Kubernetes"},
+				DaemonConfig:     &option.DaemonConfig{IPAM: "Kubernetes"},
+				DB:               db,
+				RoutePolicyTable: routePolicyTable,
 			}
 			podCIDRReconciler := NewPodCIDRReconciler(p).Reconciler.(*PodCIDRReconciler)
 
@@ -466,9 +474,13 @@ func Test_PodCIDRAdvertisement(t *testing.T) {
 				presetAdverts[preAdvertFam] = pathSet
 			}
 			podCIDRReconciler.setMetadata(testBGPInstance, PodCIDRReconcilerMetadata{
-				AFPaths:       presetAdverts,
-				RoutePolicies: tt.preconfiguredRPs,
+				AFPaths: presetAdverts,
 			})
+			if len(tt.preconfiguredRPs) > 0 {
+				seedDesiredRoutePolicyFixtures(req, podCIDRReconciler.db, podCIDRReconciler.policyTbl, testBGPInstance.Name, podCIDRReconciler.Name(), routePolicyPriorityPodCIDR, routePolicyFixtureMap{
+					resource.Key{}: tt.preconfiguredRPs,
+				})
+			}
 
 			// reconcile pod cidr
 			// run reconciler twice to ensure idempotency
@@ -493,8 +505,8 @@ func Test_PodCIDRAdvertisement(t *testing.T) {
 
 			req.Equal(tt.expectedPaths, runningFamilyPaths)
 
-			// check if the route policies are as expected
-			runningRPs := podCIDRReconciler.getMetadata(testBGPInstance).RoutePolicies
+			// check if the desired route policies are as expected
+			runningRPs := routePolicyMapFromTable(podCIDRReconciler.db, podCIDRReconciler.policyTbl, testBGPInstance.Name, podCIDRReconciler.Name(), resource.Key{})
 			req.Equal(tt.expectedRPs, runningRPs)
 		})
 	}

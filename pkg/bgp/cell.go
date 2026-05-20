@@ -80,6 +80,7 @@ var Cell = cell.Module(
 	// statedb tables
 	cell.Provide(
 		tables.NewBGPReconcileErrorTable,
+		tables.NewBGPDesiredPolicyTable,
 	),
 
 	// provide privates for reconciler v2

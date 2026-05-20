@@ -19,10 +19,10 @@ spec:
     matchLabels:
       bgp: "65001"
   bgpInstances:
-  - name: "65001"
+  - name: "instance-1"
     localASN: 65001
     peers:
-    - name: "65000"
+    - name: "peer-1"
       peerASN: 65000
       peerAddress: fd00:10::1
       peerConfigRef:

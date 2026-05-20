@@ -63,66 +63,97 @@ func BGPRoutePoliciesCmd(bgpMgr agent.BGPRouterManager) script.Cmd {
 // PrintBGPRoutePoliciesTable prints table of provided BGP route policies in the provided tab writer.
 func PrintBGPRoutePoliciesTable(tw *tabwriter.Writer, instances []agent.InstanceRoutePolicies) {
 	type row struct {
-		Instance      string
-		PolicyName    string
-		Type          string
-		MatchPeers    string
-		MatchFamilies string
-		MatchPrefixes string
-		RIBAction     string
-		PathActions   string
+		Instance       string
+		PolicyName     string
+		StatementName  string
+		StatementIndex int
+		Type           string
+		MatchPeers     string
+		MatchFamilies  string
+		MatchPrefixes  string
+		RIBAction      string
+		PathActions    string
 	}
 
 	var rows []row
 
 	for _, instance := range instances {
 		for _, policy := range instance.RoutePolicies {
-			for _, stmt := range policy.Statements {
+			for i, stmt := range policy.Statements {
 				rows = append(rows, row{
-					Instance:      instance.Name,
-					PolicyName:    policy.Name,
-					Type:          policy.Type.String(),
-					MatchPeers:    formatMatchNeighbors(stmt.Conditions.MatchNeighbors),
-					MatchFamilies: formatFamilies(stmt.Conditions.MatchFamilies),
-					MatchPrefixes: formatMatchPrefixes(stmt.Conditions.MatchPrefixes),
-					RIBAction:     stmt.Actions.RouteAction.String(),
-					PathActions:   formatPathActions(stmt),
+					Instance:       instance.Name,
+					PolicyName:     policy.Name,
+					StatementName:  stmt.Name,
+					StatementIndex: i,
+					Type:           policy.Type.String(),
+					MatchPeers:     formatMatchNeighbors(stmt.Conditions.MatchNeighbors),
+					MatchFamilies:  formatFamilies(stmt.Conditions.MatchFamilies),
+					MatchPrefixes:  formatMatchPrefixes(stmt.Conditions.MatchPrefixes),
+					RIBAction:      stmt.Actions.RouteAction.String(),
+					PathActions:    formatPathActions(stmt),
 				})
 			}
 		}
 	}
 
-	// Sort by Instance, PolicyName
+	// Sort by grouping keys only. Statement order within a policy is the
+	// configured evaluation order produced by the policy reconciler.
 	slices.SortFunc(rows, func(a, b row) int {
 		c := strings.Compare(a.Instance, b.Instance)
 		if c != 0 {
 			return c
 		}
-		return strings.Compare(a.PolicyName, b.PolicyName)
+		c = strings.Compare(a.PolicyName, b.PolicyName)
+		if c != 0 {
+			return c
+		}
+		return a.StatementIndex - b.StatementIndex
 	})
 
-	rows = slices.Insert(rows, 0, row{
-		Instance:      "Instance",
-		PolicyName:    "Policy Name",
-		Type:          "Type",
-		MatchPeers:    "Match Peers",
-		MatchFamilies: "Match Families",
-		MatchPrefixes: "Match Prefixes (Min..Max Len)",
-		RIBAction:     "RIB Action",
-		PathActions:   "Path Actions",
-	})
+	fmt.Fprintf(tw, "%s\n", strings.Join([]string{
+		"Instance",
+		"Policy",
+		"Type",
+		"Statement",
+		"Match Peers",
+		"Match Families",
+		"Match Prefixes (Min..Max Len)",
+		"RIB Action",
+		"Path Actions",
+	}, "\t"))
 
+	var previousInstance, previousPolicyInstance, previousPolicyName string
 	for _, row := range rows {
+		instance := row.Instance
+		if row.Instance == previousInstance {
+			instance = ""
+		}
+
+		policyName := row.PolicyName
+		if row.Instance == previousPolicyInstance && row.PolicyName == previousPolicyName {
+			policyName = ""
+		}
+
+		policyType := row.Type
+		if row.Instance == previousPolicyInstance && row.PolicyName == previousPolicyName {
+			policyType = ""
+		}
+
 		fmt.Fprintf(tw, "%s\n", strings.Join([]string{
-			row.Instance,
-			row.PolicyName,
-			row.Type,
+			instance,
+			policyName,
+			policyType,
+			row.StatementName,
 			row.MatchPeers,
 			row.MatchFamilies,
 			row.MatchPrefixes,
 			row.RIBAction,
 			row.PathActions,
 		}, "\t"))
+
+		previousInstance = row.Instance
+		previousPolicyInstance = row.Instance
+		previousPolicyName = row.PolicyName
 	}
 
 }

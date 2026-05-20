@@ -15,9 +15,11 @@ import (
 	"github.com/vishvananda/netlink"
 
 	"github.com/cilium/cilium/pkg/bgp/manager/instance"
+	bgptables "github.com/cilium/cilium/pkg/bgp/manager/tables"
 	"github.com/cilium/cilium/pkg/bgp/types"
-	"github.com/cilium/cilium/pkg/datapath/tables"
+	dptables "github.com/cilium/cilium/pkg/datapath/tables"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/resource"
 	"github.com/cilium/cilium/pkg/slices"
 )
 
@@ -38,21 +40,22 @@ type InterfaceReconcilerIn struct {
 	Logger     *slog.Logger
 	PeerAdvert *CiliumPeerAdvertisement
 
-	DB          *statedb.DB
-	DeviceTable statedb.Table[*tables.Device]
+	DB               *statedb.DB
+	DeviceTable      statedb.Table[*dptables.Device]
+	RoutePolicyTable statedb.RWTable[*bgptables.BGPDesiredPolicy]
 }
 
 type InterfaceReconciler struct {
 	logger      *slog.Logger
 	peerAdvert  *CiliumPeerAdvertisement
 	db          *statedb.DB
-	deviceTable statedb.Table[*tables.Device]
+	deviceTable statedb.Table[*dptables.Device]
+	policyTbl   statedb.RWTable[*bgptables.BGPDesiredPolicy]
 	metadata    map[string]InterfaceReconcilerMetadata
 }
 
 type InterfaceReconcilerMetadata struct {
-	AFPaths       AFPathsMap
-	RoutePolicies RoutePolicyMap
+	AFPaths AFPathsMap
 }
 
 func NewInterfaceReconciler(params InterfaceReconcilerIn) InterfaceReconcilerOut {
@@ -62,6 +65,7 @@ func NewInterfaceReconciler(params InterfaceReconcilerIn) InterfaceReconcilerOut
 			peerAdvert:  params.PeerAdvert,
 			db:          params.DB,
 			deviceTable: params.DeviceTable,
+			policyTbl:   params.RoutePolicyTable,
 			metadata:    make(map[string]InterfaceReconcilerMetadata),
 		},
 	}
@@ -82,8 +86,7 @@ func (r *InterfaceReconciler) Init(i *instance.BGPInstance) error {
 		return fmt.Errorf("BUG: %s reconciler initialization with nil BGPInstance", r.Name())
 	}
 	r.metadata[i.Name] = InterfaceReconcilerMetadata{
-		AFPaths:       make(AFPathsMap),
-		RoutePolicies: make(RoutePolicyMap),
+		AFPaths: make(AFPathsMap),
 	}
 	return nil
 }
@@ -91,6 +94,9 @@ func (r *InterfaceReconciler) Init(i *instance.BGPInstance) error {
 func (r *InterfaceReconciler) Cleanup(i *instance.BGPInstance) {
 	if i != nil {
 		delete(r.metadata, i.Name)
+		if err := deleteDesiredRoutePoliciesBySource(r.db, r.policyTbl, i.Name, r.Name()); err != nil {
+			r.logger.Warn("Failed deleting desired Interface route policies", types.InstanceLogField, i.Name, "error", err)
+		}
 	}
 }
 
@@ -105,7 +111,7 @@ func (r *InterfaceReconciler) Reconcile(ctx context.Context, p ReconcileParams) 
 	}
 
 	txn := r.db.ReadTxn()
-	err = r.reconcileRoutePolicies(ctx, p, desiredPeerAdverts, txn)
+	err = r.reconcileDesiredRoutePolicyStatements(ctx, p, desiredPeerAdverts, txn)
 	if err != nil {
 		return err
 	}
@@ -135,8 +141,8 @@ func (r *InterfaceReconciler) getDesiredPaths(desiredPeerAdverts PeerAdvertiseme
 	return desiredAdverts
 }
 
-func (r *InterfaceReconciler) getDesiredRoutePolicies(desiredPeerAdverts PeerAdvertisements, txn statedb.ReadTxn) (RoutePolicyMap, error) {
-	desiredPolicies := make(RoutePolicyMap)
+func (r *InterfaceReconciler) getDesiredRoutePolicyStatements(desiredPeerAdverts PeerAdvertisements, txn statedb.ReadTxn) (PeerRoutePolicyStatementMap, error) {
+	desiredStatements := make(PeerRoutePolicyStatementMap)
 	for peer, peerFamilyAdverts := range desiredPeerAdverts {
 		if peer.Address == "" {
 			continue
@@ -159,17 +165,24 @@ func (r *InterfaceReconciler) getDesiredRoutePolicies(desiredPeerAdverts PeerAdv
 					}
 				}
 				if len(v6Prefixes) > 0 || len(v4Prefixes) > 0 {
-					name := PolicyName(peer.Name, agentFamily.Afi.String(), advert.AdvertisementType, "")
-					policy, err := CreatePolicy(name, peerAddr, v4Prefixes, v6Prefixes, advert)
+					name := PolicyStatementName(peer.Name, agentFamily.Afi.String(), advert.AdvertisementType, "")
+					statements, err := CreatePolicyStatements(name, peerAddr, v4Prefixes, v6Prefixes, advert)
 					if err != nil {
 						return nil, err
 					}
-					desiredPolicies[name] = policy
+					peerStatements := desiredStatements[peer.Name]
+					if peerStatements == nil {
+						peerStatements = make(RoutePolicyStatementMap)
+						desiredStatements[peer.Name] = peerStatements
+					}
+					for statementName, statement := range statements {
+						peerStatements[statementName] = statement
+					}
 				}
 			}
 		}
 	}
-	return desiredPolicies, nil
+	return desiredStatements, nil
 }
 
 func (r *InterfaceReconciler) getInterfacePrefixes(advert v2.BGPAdvertisement, family types.Family, txn statedb.ReadTxn) []netip.Prefix {
@@ -177,7 +190,7 @@ func (r *InterfaceReconciler) getInterfacePrefixes(advert v2.BGPAdvertisement, f
 	if advert.Interface == nil {
 		return nil
 	}
-	dev, _, found := r.deviceTable.Get(txn, tables.DeviceNameIndex.Query(advert.Interface.Name))
+	dev, _, found := r.deviceTable.Get(txn, dptables.DeviceNameIndex.Query(advert.Interface.Name))
 	if !found {
 		return nil
 	}
@@ -228,26 +241,23 @@ func (r *InterfaceReconciler) reconcilePaths(ctx context.Context, p ReconcilePar
 	return err
 }
 
-func (r *InterfaceReconciler) reconcileRoutePolicies(ctx context.Context, p ReconcileParams, desiredPeerAdverts PeerAdvertisements, txn statedb.ReadTxn) error {
-	metadata := r.getMetadata(p.BGPInstance)
-
-	// get desired policies
-	desiredRoutePolicies, err := r.getDesiredRoutePolicies(desiredPeerAdverts, txn)
+func (r *InterfaceReconciler) reconcileDesiredRoutePolicyStatements(_ context.Context, p ReconcileParams, desiredPeerAdverts PeerAdvertisements, txn statedb.ReadTxn) error {
+	// get desired policy statements
+	desiredRoutePolicyStatements, err := r.getDesiredRoutePolicyStatements(desiredPeerAdverts, txn)
 	if err != nil {
 		return err
 	}
 
-	// reconcile route policies
-	updatedPolicies, err := ReconcileRoutePolicies(&ReconcileRoutePoliciesParams{
-		Logger:          r.logger.With(types.InstanceLogField, p.DesiredConfig.Name),
-		Ctx:             ctx,
-		Router:          p.BGPInstance.Router,
-		DesiredPolicies: desiredRoutePolicies,
-		CurrentPolicies: r.getMetadata(p.BGPInstance).RoutePolicies,
-	})
-
-	metadata.RoutePolicies = updatedPolicies
-	r.setMetadata(p.BGPInstance, metadata)
+	err = reconcileDesiredRoutePolicyStatementsByPeer(
+		r.db,
+		r.policyTbl,
+		p.BGPInstance.Name,
+		r.Name(),
+		routePolicyPriorityInterface,
+		resource.Key{},
+		types.RoutePolicyTypeExport,
+		desiredRoutePolicyStatements,
+	)
 	return err
 }
 
