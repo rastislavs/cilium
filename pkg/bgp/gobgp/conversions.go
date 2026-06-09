@@ -145,7 +145,11 @@ func toGoBGPPolicy(apiPolicy *types.RoutePolicy) (*gobgp.Policy, []*gobgp.Define
 		Name: apiPolicy.Name,
 	}
 	for i, stmt := range apiPolicy.Statements {
-		statement, dSets := toGoBGPPolicyStatement(stmt, policyStatementName(apiPolicy.Name, i))
+		name := stmt.Name
+		if name == "" {
+			name = defaultPolicyStatementName(apiPolicy.Name, i)
+		}
+		statement, dSets := toGoBGPPolicyStatement(stmt, name)
 		policy.Statements = append(policy.Statements, statement)
 		definedSets = append(definedSets, dSets...)
 	}
@@ -255,7 +259,9 @@ func toGoBGPPolicyStatement(apiStatement *types.RoutePolicyStatement, name strin
 }
 
 func toAgentPolicyStatement(s *gobgp.Statement, definedSets map[string]*gobgp.DefinedSet) *types.RoutePolicyStatement {
-	stmt := &types.RoutePolicyStatement{}
+	stmt := &types.RoutePolicyStatement{
+		Name: s.Name,
+	}
 
 	if s.Conditions != nil {
 		if s.Conditions.NeighborSet != nil && definedSets[s.Conditions.NeighborSet.Name] != nil {
@@ -315,7 +321,7 @@ func toAgentPolicyStatement(s *gobgp.Statement, definedSets map[string]*gobgp.De
 	return stmt
 }
 
-func policyStatementName(policyName string, cnt int) string {
+func defaultPolicyStatementName(policyName string, cnt int) string {
 	return fmt.Sprintf("%s-%d", policyName, cnt)
 }
 
