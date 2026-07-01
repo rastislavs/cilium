@@ -10,9 +10,11 @@ import (
 	"testing"
 
 	"github.com/cilium/hive/hivetest"
+	"github.com/cilium/statedb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/cilium/pkg/bgp/fake"
+	bgpTables "github.com/cilium/cilium/pkg/bgp/manager/tables"
 	"github.com/cilium/cilium/pkg/bgp/types"
 )
 
@@ -1024,4 +1026,21 @@ func TestRoutePolicySoftReset(t *testing.T) {
 			req.Equal(tt.expectedResets, router.GetResets())
 		})
 	}
+}
+
+func requireDesiredRoutePolicies(t *testing.T, db *statedb.DB, table statedb.Table[*bgpTables.DesiredRoutePolicy],
+	instanceName string, owner string, expectedPolicies []*bgpTables.DesiredRoutePolicy) {
+	t.Helper()
+
+	expectedByKey := make(map[string]*bgpTables.DesiredRoutePolicy)
+	for _, expected := range expectedPolicies {
+		expectedByKey[expected.StatementName()] = expected
+	}
+
+	actualByKey := make(map[string]*bgpTables.DesiredRoutePolicy)
+	for actual := range table.List(db.ReadTxn(), bgpTables.DesiredRoutePoliciesByInstanceOwner(instanceName, owner)) {
+		actualByKey[actual.StatementName()] = actual
+	}
+
+	require.Equal(t, expectedByKey, actualByKey)
 }
